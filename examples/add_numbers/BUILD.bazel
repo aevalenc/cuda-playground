@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+cuda_library(
+    name = "add_numbers_cuda",
+    srcs = ["add_numbers.cu"],
+    hdrs = ["add_numbers.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "add_numbers",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [":add_numbers_cuda"],
+)

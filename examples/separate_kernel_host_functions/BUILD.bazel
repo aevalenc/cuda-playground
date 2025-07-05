@@ -1,0 +1,24 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+cuda_library(
+    name = "add_arrays_kernel",
+    srcs = ["add_arrays.cu"],
+    hdrs = ["add_arrays.h"],
+    visibility = ["//visibility:public"],
+)
+
+cuda_library(
+    name = "add_arrays_lib",
+    srcs = ["launch.cc"],
+    hdrs = ["launch.h"],
+    visibility = ["//visibility:public"],
+    deps = [":add_arrays_kernel"],
+)
+
+cc_binary(
+    name = "main",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [":add_arrays_lib"],
+)

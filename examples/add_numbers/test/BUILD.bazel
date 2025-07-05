@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+cuda_library(
+    name = "add_numbers_test_lib",
+    srcs = ["add_numbers.cu"],
+    hdrs = ["add_numbers.cuh"],
+    visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "add_numbers_tests",
+    srcs = ["add_numbers_tests.cc"],
+    deps = [
+        ":add_numbers_test_lib",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)

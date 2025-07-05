@@ -1,0 +1,31 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cuda//cuda:defs.bzl", "cuda_binary", "cuda_library")
+
+cuda_library(
+    name = "closest_neighbor_kernel",
+    srcs = ["closest_neighbor.cu"],
+    hdrs = ["closest_neighbor.h"],
+    visibility = ["//visibility:public"],
+)
+
+cuda_library(
+    name = "closest_neighbor_lib",
+    srcs = ["launch.cu"],
+    hdrs = ["launch.h"],
+    visibility = ["//visibility:public"],
+    deps = [":closest_neighbor_kernel"],
+)
+
+cuda_binary(
+    name = "closest_neighbor_bin",
+    srcs = ["main.cu"],
+    visibility = ["//visibility:public"],
+    deps = [":closest_neighbor_lib"],
+)
+
+cc_binary(
+    name = "main",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [":closest_neighbor_lib"],
+)
