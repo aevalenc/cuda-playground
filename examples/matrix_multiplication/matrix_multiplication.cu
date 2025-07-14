@@ -64,21 +64,21 @@ __global__ void AccelMatMultGPU(std::int32_t* A,
     std::int32_t row = blockIdx.x * blockDim.x + threadIdx.x;
     std::int32_t column = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if ((row < M) || column < P)
+    if (row >= M || column >= P)
+        return;  // Out of bounds check
+
+    // Iterate through idx row and column
+    std::int32_t sum{0};
+    for (std::int32_t j = 0; j < N; ++j)
     {
-        // Iterate through idx row and column
-        std::int32_t sum{0};
-        for (std::int32_t j = 0; j < N; ++j)
-        {
-            sum += A[j + N * row] * B[column + P * j];
-        }
-        C[column + row * P] = sum;
-        printf("Thread (%d, %d): row = %d, column= %d, C[%d] = %d\n",
-               blockIdx.x,
-               blockIdx.y,
-               row,
-               column,
-               column + row * P,
-               C[column + row * P]);
+        sum += A[j + N * row] * B[column + P * j];
     }
+    C[column + row * P] = sum;
+    printf("Thread (%d, %d): row = %d, column= %d, C[%d] = %d\n",
+           blockIdx.x,
+           blockIdx.y,
+           row,
+           column,
+           column + row * P,
+           C[column + row * P]);
 }
