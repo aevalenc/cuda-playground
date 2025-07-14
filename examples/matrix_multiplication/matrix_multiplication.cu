@@ -26,7 +26,12 @@ __global__ void MatVectorMultGPU(std::int32_t* A, std::int32_t* b, std::int32_t*
     }
 }
 
-__global__ void MatMultGPU(std::int32_t* A, std::int32_t* B, std::int32_t* C, std::int32_t N)
+__global__ void MatMultGPU(std::int32_t* A,
+                           std::int32_t* B,
+                           std::int32_t* C,
+                           std::int32_t N,
+                           std::int32_t M,
+                           std::int32_t P)
 {
 
     // Calculate the global thread index
@@ -34,13 +39,16 @@ __global__ void MatMultGPU(std::int32_t* A, std::int32_t* B, std::int32_t* C, st
 
     if (idx < N)
     {
-        // Iterate through idx row and column
-        std::int32_t sum{0};
-        for (std::int32_t j = 0; j < N; ++j)
+        for (std::int32_t column_B = 0; column_B < P; ++column_B)
         {
-            sum += A[j + N * idx] * B[idx + N * j];
+            // Iterate through idx row and column
+            std::int32_t sum{0};
+            for (std::int32_t j = 0; j < N; ++j)
+            {
+                sum += A[j + N * idx] * B[column_B + M * j];
+            }
+            C[column_B + idx * N] = sum;
+            // printf("Thread %d: C[%d] = %d\n", idx, idx, C[idx]);
         }
-        C[idx] = sum;
-        // printf("Thread %d: C[%d] = %d\n", idx, idx, C[idx]);
     }
 }

@@ -37,9 +37,21 @@ void PrintMatrix(const std::int32_t* A, const std::int32_t N)
     std::cout << "[";
     for (std::int32_t i = 0; i < N; ++i)
     {
-        PrintArray(&A[i * N], N);
+
+        if (i != (N - 1))
+        {
+            PrintArray(&A[i * N], N);
+        }
+        else
+        {
+            std::cout << "[" << A[N * i];
+            for (std::int32_t j = 1; j < N; ++j)
+            {
+                std::cout << ", " << A[j + N * i];
+            }
+        }
     }
-    std::cout << "]\n";
+    std::cout << "]]\n";
 }
 
 }  // namespace
@@ -63,7 +75,7 @@ double LaunchGPU(std::int32_t N)
     }
 
     PrintMatrix(host_A, N);
-    PrintVector(host_B, N);
+    PrintMatrix(host_B, N);
 
     std::int32_t* device_A;
     std::int32_t* device_B;
@@ -105,12 +117,12 @@ double LaunchGPU(std::int32_t N)
         return -1;
     }
 
-    MatVectorMultGPU<<<(N + kBlockSize - 1) / kBlockSize, kBlockSize>>>(device_A, device_B, device_C, N);
+    MatMultGPU<<<(N + kBlockSize - 1) / kBlockSize, kBlockSize>>>(device_A, device_B, device_C, N, N, N);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    if (cudaMemcpy(host_C, device_C, sizeof(std::int32_t) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
+    if (cudaMemcpy(host_C, device_C, sizeof(std::int32_t) * N * N, cudaMemcpyDeviceToHost) != cudaSuccess)
     {
         std::cerr << "Failed to copy data from device to host\n";
         delete[] host_A;
@@ -122,7 +134,7 @@ double LaunchGPU(std::int32_t N)
         return -1;
     }
 
-    PrintVector(host_C, N);
+    PrintMatrix(host_C, N);
 
     const auto end = clock();
     const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
@@ -141,23 +153,31 @@ double LaunchGPU(std::int32_t N)
     return elapsed_time;
 }
 
-double LaunchCPU(std::int32_t N)
+double LaunchCPU(std::int32_t N, std::int32_t M, std::int32_t P)
 {
 
     // Allocate device memory for two arrays of double2 points
-    std::int32_t* host_A = new std::int32_t[N * N];
-    std::int32_t* host_B = new std::int32_t[N];
-    std::int32_t* host_C = new std::int32_t[N];
+    std::int32_t* host_A = new std::int32_t[N * M];
+    std::int32_t* host_B = new std::int32_t[M * P];
+    std::int32_t* host_C = new std::int32_t[N * P];
 
     // Initialize the arrays
     for (std::int32_t i = 0; i < N; ++i)
     {
-        for (std::int32_t j = 0; j < N; ++j)
+        for (std::int32_t j = 0; j < M; ++j)
         {
             host_A[j + N * i] = 2 * (i + j);  // Example initialization, can be random or specific values
         }
-        host_B[i] = i;  // Example initialization, can be random or specific values
     }
+
+    for (std::int32_t i = 0; i < M; ++i)
+    {
+        for (std::int32_t j = 0; j < P; ++j)
+        {
+            host_B[j + M * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+        }
+    }
+
     // PrintMatrix(host_A, N);
     // PrintVector(host_B, N);
 
@@ -165,14 +185,15 @@ double LaunchCPU(std::int32_t N)
     for (std::int32_t i = 0; i < N; ++i)
     {
         // Initialize sum
-        std::int32_t sum{0};
-
-        // Iterate through the row and column
-        for (std::int32_t j = 0; j < N; ++j)
+        for (std::int32_t j = 0; j < P; ++j)
         {
-            sum += host_A[j + N * i] * host_B[j];
+            std::int32_t sum{0};
+            for (std::int32_t k = 0; k < M; ++k)
+            {
+                sum += host_A[k + N * i] * host_B[j + M * k];
+            }
+            host_C[j + P * i] = sum;
         }
-        host_C[i] = sum;
     }
 
     const auto end = clock();
