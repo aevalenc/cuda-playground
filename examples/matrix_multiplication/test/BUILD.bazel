@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+cuda_library(
+    name = "launch_main",
+    srcs = ["launch_test.cu"],
+    hdrs = ["launch_test.cuh"],
+    deps = ["//examples/matrix_multiplication:matrix_multiplication_lib"],
+)
+
+cc_test(
+    name = "matrix_multiplication_tests",
+    srcs = ["test.cc"],
+    deps = [
+        ":launch_main",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
