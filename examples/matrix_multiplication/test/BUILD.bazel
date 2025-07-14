@@ -5,7 +5,10 @@ cuda_library(
     name = "launch_main",
     srcs = ["launch_test.cu"],
     hdrs = ["launch_test.cuh"],
-    deps = ["//examples/matrix_multiplication:matrix_multiplication_lib"],
+    deps = [
+        "//examples/matrix_multiplication:matrix_multiplication_lib",
+        "//examples/matrix_multiplication:matrix_utils",
+    ],
 )
 
 cc_test(
