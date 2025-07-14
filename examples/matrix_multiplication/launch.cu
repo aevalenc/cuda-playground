@@ -96,13 +96,9 @@ double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P)
         }
     }
 
-    PrintMatrix(host_C, M, P);
-
     const auto end = clock();
     const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
     std::cout << "Elapsed CPU time: " << elapsed_time << " seconds\n";
-
-    // PrintVector(host_C, N);
 
     delete[] host_A;
     delete[] host_B;
@@ -134,9 +130,6 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
             host_B[j + P * i] = 2 * (i + j);  // Example initialization, can be random or specific values
         }
     }
-
-    PrintMatrix(host_A, M, N);
-    PrintMatrix(host_B, N, P);
 
     std::int32_t* device_A;
     std::int32_t* device_B;
@@ -178,7 +171,9 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
         return -1;
     }
 
-    MatMultGPU<<<(M + kBlockSize - 1) / kBlockSize, kBlockSize>>>(device_A, device_B, device_C, M, N, P);
+    const auto num_blocks = (M + kBlockSize - 1) / kBlockSize;
+    std::cout << "Launching kernel with " << num_blocks << " blocks of " << kBlockSize << " threads each\n";
+    MatMultGPU<<<num_blocks, kBlockSize>>>(device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -194,8 +189,6 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
         cudaFree(device_C);
         return -1;
     }
-
-    PrintMatrix(host_C, M, P);
 
     const auto end = clock();
     const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;

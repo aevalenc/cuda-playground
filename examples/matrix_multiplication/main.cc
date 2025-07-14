@@ -8,10 +8,10 @@
 int main()
 {
     // Set the number of points to be processed
-    const std::int32_t M = 3;
-    const std::int32_t N = 2;
-    const std::int32_t P = 1;
-    const std::int32_t max_runs = 1;
+    const std::int32_t M = 3000;
+    const std::int32_t N = 2000;
+    const std::int32_t P = 2000;
+    const std::int32_t max_runs = 5;
 
     auto min_time_cpu = 1000.0;
     for (std::int32_t run = 0; run < max_runs; ++run)
