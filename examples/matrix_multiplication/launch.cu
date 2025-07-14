@@ -56,6 +56,61 @@ void PrintMatrix(const std::int32_t* A, const std::int32_t M, const std::int32_t
 
 }  // namespace
 
+double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P)
+{
+
+    // Allocate device memory for two arrays of double2 points
+    std::int32_t* host_A = new std::int32_t[M * N];
+    std::int32_t* host_B = new std::int32_t[N * P];
+    std::int32_t* host_C = new std::int32_t[M * P];
+
+    // Initialize the arrays
+    for (std::int32_t i = 0; i < M; ++i)
+    {
+        for (std::int32_t j = 0; j < N; ++j)
+        {
+            host_A[j + N * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+        }
+    }
+
+    for (std::int32_t i = 0; i < N; ++i)
+    {
+        for (std::int32_t j = 0; j < P; ++j)
+        {
+            host_B[j + P * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+        }
+    }
+
+    const auto start = clock();
+    for (std::int32_t i = 0; i < M; ++i)
+    {
+        // Initialize sum
+        for (std::int32_t j = 0; j < P; ++j)
+        {
+            std::int32_t sum{0};
+            for (std::int32_t k = 0; k < N; ++k)
+            {
+                sum += host_A[k + N * i] * host_B[j + P * k];
+            }
+            host_C[j + P * i] = sum;
+        }
+    }
+
+    PrintMatrix(host_C, M, P);
+
+    const auto end = clock();
+    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed CPU time: " << elapsed_time << " seconds\n";
+
+    // PrintVector(host_C, N);
+
+    delete[] host_A;
+    delete[] host_B;
+    delete[] host_C;
+
+    return elapsed_time;
+}
+
 double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
 {
     // Allocate device memory for two arrays of double2 points
@@ -79,6 +134,9 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
             host_B[j + P * i] = 2 * (i + j);  // Example initialization, can be random or specific values
         }
     }
+
+    PrintMatrix(host_A, M, N);
+    PrintMatrix(host_B, N, P);
 
     std::int32_t* device_A;
     std::int32_t* device_B;
@@ -152,62 +210,6 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
     cudaFree(device_C);
 
     cudaDeviceReset();
-
-    return elapsed_time;
-}
-
-double LaunchCPU(std::int32_t N, std::int32_t M, std::int32_t P)
-{
-
-    // Allocate device memory for two arrays of double2 points
-    std::int32_t* host_A = new std::int32_t[N * M];
-    std::int32_t* host_B = new std::int32_t[M * P];
-    std::int32_t* host_C = new std::int32_t[N * P];
-
-    // Initialize the arrays
-    for (std::int32_t i = 0; i < N; ++i)
-    {
-        for (std::int32_t j = 0; j < M; ++j)
-        {
-            host_A[j + N * i] = 2 * (i + j);  // Example initialization, can be random or specific values
-        }
-    }
-
-    for (std::int32_t i = 0; i < M; ++i)
-    {
-        for (std::int32_t j = 0; j < P; ++j)
-        {
-            host_B[j + M * i] = 2 * (i + j);  // Example initialization, can be random or specific values
-        }
-    }
-
-    // PrintMatrix(host_A, N);
-    // PrintVector(host_B, N);
-
-    const auto start = clock();
-    for (std::int32_t i = 0; i < N; ++i)
-    {
-        // Initialize sum
-        for (std::int32_t j = 0; j < P; ++j)
-        {
-            std::int32_t sum{0};
-            for (std::int32_t k = 0; k < M; ++k)
-            {
-                sum += host_A[k + N * i] * host_B[j + M * k];
-            }
-            host_C[j + P * i] = sum;
-        }
-    }
-
-    const auto end = clock();
-    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-    std::cout << "Elapsed CPU time: " << elapsed_time << " seconds\n";
-
-    // PrintVector(host_C, N);
-
-    delete[] host_A;
-    delete[] host_B;
-    delete[] host_C;
 
     return elapsed_time;
 }
