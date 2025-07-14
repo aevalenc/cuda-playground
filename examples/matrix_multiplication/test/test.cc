@@ -2,23 +2,24 @@
  * Closest Neighbor Search using Shared Memory in CUDA Test
  */
 
-#include "examples/shared_memory/test/launch_test.cuh"
+#include "examples/matrix_multiplication/test/launch_test.cuh"
 #include <cstdint>
 #include <gtest/gtest.h>
 
 TEST(ClosestNeighborSharedMemoryTest, SmallPointSet)
 {
-    constexpr int num_points = 6;
-    const double2 h_points[num_points] = {{0.0, 0.0}, {1.0, 0.0}, {0.0, 1.0}, {5.0, 5.0}, {6.0, 6.0}, {10.0, 10.0}};
-    std::int32_t h_neighbors[num_points] = {0};
+    const std::int32_t M = 3;
+    const std::int32_t N = 2;
+    const std::int32_t P = 1;
 
-    Launch(num_points, h_points, h_neighbors);
+    const std::int32_t h_A[M * N] = {0, 2, 2, 4, 4, 6};
+    const std::int32_t h_B[N * P] = {0, 2};
+    std::int32_t h_C[M * P] = {0};
+
+    Launch(h_A, h_B, h_C, M, N, P);
 
     // Check results
-    EXPECT_TRUE(h_neighbors[0] == 1 || h_neighbors[0] == 2);
-    EXPECT_EQ(h_neighbors[1], 0);
-    EXPECT_EQ(h_neighbors[2], 0);
-    EXPECT_EQ(h_neighbors[3], 4);
-    EXPECT_EQ(h_neighbors[4], 3);
-    EXPECT_EQ(h_neighbors[5], 4);
+    EXPECT_EQ(h_C[0], 4);
+    EXPECT_EQ(h_C[1], 8);
+    EXPECT_EQ(h_C[2], 12);
 }

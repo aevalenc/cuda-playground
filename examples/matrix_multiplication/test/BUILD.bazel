@@ -5,11 +5,11 @@ cuda_library(
     name = "launch_main",
     srcs = ["launch_test.cu"],
     hdrs = ["launch_test.cuh"],
-    deps = ["//examples/shared_memory:closest_neighbor_lib"],
+    deps = ["//examples/matrix_multiplication:matrix_multiplication_lib"],
 )
 
 cc_test(
-    name = "shared_memory_tests",
+    name = "matrix_multiplication_tests",
     srcs = ["test.cc"],
     deps = [
         ":launch_main",

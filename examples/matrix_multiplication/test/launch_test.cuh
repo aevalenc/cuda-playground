@@ -5,4 +5,11 @@
 #include <cstdint>
 #include <cuda_runtime.h>
 
-void Launch(const std::int32_t number_of_points, const double2* points, std::int32_t* neighbors);
+__device__ constexpr int32_t kTestBlockSize = 256;
+
+void Launch(const int32_t* A,
+            const int32_t* B,
+            int32_t* C,
+            const std::int32_t M,
+            const std::int32_t N,
+            const std::int32_t P);

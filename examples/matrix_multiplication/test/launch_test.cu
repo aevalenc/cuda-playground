@@ -2,32 +2,42 @@
  * Closest Neighbor Search using Shared Memory in CUDA Test
  */
 
-#include "examples/shared_memory/closest_neighbor.h"
-#include "examples/shared_memory/test/launch_test.cuh"
+#include "examples/matrix_multiplication/matrix_multiplication.h"
+#include "examples/matrix_multiplication/test/launch_test.cuh"
 #include <cstdint>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
-void Launch(const std::int32_t number_of_points, const double2* h_points, std::int32_t* h_neighbors)
+void Launch(const int32_t* A,
+            const int32_t* B,
+            int32_t* C,
+            const std::int32_t M,
+            const std::int32_t N,
+            const std::int32_t P)
 {
 
     // Allocate device memory
-    double2* d_points = nullptr;
-    std::int32_t* d_neighbors = nullptr;
-    cudaMalloc(&d_points, sizeof(double2) * number_of_points);
-    cudaMalloc(&d_neighbors, sizeof(std::int32_t) * number_of_points);
+    std::int32_t* d_A;
+    std::int32_t* d_B;
+    std::int32_t* d_C;
+    cudaMalloc(&d_A, sizeof(std::int32_t) * M * N);
+    cudaMalloc(&d_B, sizeof(std::int32_t) * N * P);
+    cudaMalloc(&d_C, sizeof(std::int32_t) * M * P);
 
     // Copy points to device
-    cudaMemcpy(d_points, h_points, sizeof(double2) * number_of_points, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_A, A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice);
 
     // Launch kernel (4 threads per block)
-    FindClosestNeighborWithSharedBlocks<<<(number_of_points + kBlockSize - 1) / kBlockSize, kBlockSize>>>(
-        d_points, d_neighbors, number_of_points);
+    const auto num_blocks = (M + kTestBlockSize - 1) / kTestBlockSize;
+    printf("Launching kernel with %d blocks of %d threads each\n", num_blocks, kTestBlockSize);
+    MatMultGPU<<<num_blocks, kTestBlockSize>>>(d_A, d_B, d_C, M, N, P);
     cudaDeviceSynchronize();
 
     // Copy results back
-    cudaMemcpy(h_neighbors, d_neighbors, sizeof(std::int32_t) * number_of_points, cudaMemcpyDeviceToHost);
+    cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost);
 
-    cudaFree(d_points);
-    cudaFree(d_neighbors);
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
 }

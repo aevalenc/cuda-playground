@@ -178,7 +178,7 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
         return -1;
     }
 
-    MatMultGPU<<<(N + kBlockSize - 1) / kBlockSize, kBlockSize>>>(device_A, device_B, device_C, M, N, P);
+    MatMultGPU<<<(M + kBlockSize - 1) / kBlockSize, kBlockSize>>>(device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
