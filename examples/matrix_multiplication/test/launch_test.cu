@@ -4,9 +4,7 @@
 
 #include "examples/matrix_multiplication/matrix_multiplication.h"
 #include "examples/matrix_multiplication/test/launch_test.cuh"
-#include "examples/matrix_multiplication/utils.h"
 #include <cstdint>
-#include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
 void Launch(const int32_t* A,
@@ -76,8 +74,6 @@ void LaunchAccelerated(const int32_t* A,
 
     // Copy results back
     cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost);
-
-    utils::PrintMatrix(C, N, P);
 
     cudaFree(d_A);
     cudaFree(d_B);
