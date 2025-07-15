@@ -6,7 +6,7 @@ cuda_library(
     srcs = ["launch_test.cu"],
     hdrs = ["launch_test.cuh"],
     deps = [
-        "//examples/matrix_multiplication:matrix_multiplication_lib",
+        "//examples/matrix_multiplication:matrix_multiplication_kernel",
         "//examples/matrix_multiplication:matrix_utils",
     ],
 )

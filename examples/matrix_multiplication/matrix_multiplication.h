@@ -23,6 +23,12 @@ __global__ void AccelMatMultGPU(std::int32_t* A,
                                 std::int32_t M,
                                 std::int32_t N,
                                 std::int32_t P);
+__global__ void MatMultWithSharedMemoryGPU(std::int32_t* A,
+                                           std::int32_t* B,
+                                           std::int32_t* C,
+                                           std::int32_t M,
+                                           std::int32_t N,
+                                           std::int32_t P);
 }
 
 #endif  // EXAMPLES_MATRIX_MULTIPLICATION_MATRIX_MULTIPLICATION_H
