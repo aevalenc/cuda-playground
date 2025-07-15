@@ -4,6 +4,7 @@
 
 #include "examples/matrix_multiplication/matrix_multiplication.h"
 #include "examples/matrix_multiplication/test/launch_test.cuh"
+#include "examples/matrix_multiplication/utils.h"
 #include <cstdint>
 #include <gtest/gtest.h>
 
@@ -58,22 +59,45 @@ void LaunchAccelerated(const int32_t* A,
     cudaMalloc(&d_C, sizeof(std::int32_t) * M * P);
 
     // Copy points to device
-    cudaMemcpy(d_A, A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice);
+    if (cudaMemcpy(d_A, A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice) != cudaSuccess)
+    {
+        std::cerr << "Failed to copy data from host to device for Matrix A\n";
+        cudaFree(d_A);
+        cudaFree(d_B);
+        return;
+    }
+    if (cudaMemcpy(d_B, B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice) != cudaSuccess)
+    {
+        std::cerr << "Failed to copy data from host to device for Matrix A\n";
+        cudaFree(d_A);
+        cudaFree(d_B);
+        return;
+    }
 
     // Launch kernel
-    const dim3 block_size(128, 1, 1);
-    const dim3 grid_size(4, 4, 1);
-    printf("Launching kernel with %d blocks in x, %d blocks in y, and %d threads per block\n",
-           grid_size.x,
-           grid_size.y,
-           block_size.x);
+    const auto num_blocks_x = (P + kTestBlockSize - 1) / kTestBlockSize;
+    const auto num_blocks_y = (M + kTestBlockSize - 1) / kTestBlockSize;
 
-    AccelMatMultGPU<<<block_size, grid_size>>>(d_A, d_B, d_C, M, N, P);
-    cudaDeviceSynchronize();
+    printf("Launching kernel with %d blocks in x, %d blocks in y, and %d threads per block\n",
+           num_blocks_x,
+           num_blocks_y,
+           kTestBlockSize);
+
+    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y), dim3(kTestBlockSize, kTestBlockSize)>>>(d_A, d_B, d_C, M, N, P);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     // Copy results back
-    cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost);
+
+    if (cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost) != cudaSuccess)
+    {
+        std::cerr << "Failed to copy data from device to host\n";
+        cudaFree(d_A);
+        cudaFree(d_B);
+        cudaFree(d_C);
+        return;
+    }
 
     cudaFree(d_A);
     cudaFree(d_B);

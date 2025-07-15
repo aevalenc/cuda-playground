@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 
-TEST(ClosestNeighborSharedMemoryTest, SmallPointSet)
+TEST(MatrixMultiplicationTest, GivenSmallDifferentSizedMatricesExpectCorrectOutput)
 {
     const std::int32_t M = 3;
     const std::int32_t N = 2;
@@ -31,7 +31,7 @@ TEST(MultiDimensionalGridTest, BasicFunctionality)
     const std::int32_t P = 4;
 
     const std::int32_t h_A[M * N] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
-    const std::int32_t h_B[M * N] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
+    const std::int32_t h_B[N * P] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
     std::int32_t h_C[M * P] = {0};
 
     LaunchAccelerated(h_A, h_B, h_C, M, N, P);
@@ -63,13 +63,13 @@ TEST(MultiDimensionalGridTest, GivenSameInputExpectEqualOutput)
     const std::int32_t P = 4;
 
     const std::int32_t h_A[M * N] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
-    const std::int32_t h_B[M * N] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
+    const std::int32_t h_B[N * P] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
     std::int32_t h_C_gpu[M * P] = {0};
     std::int32_t h_C_accelerated_gpu[M * P] = {0};
 
     // Call
     Launch(h_A, h_B, h_C_gpu, M, N, P);
-    Launch(h_A, h_B, h_C_accelerated_gpu, M, N, P);
+    LaunchAccelerated(h_A, h_B, h_C_accelerated_gpu, M, N, P);
 
     // Check results
     for (std::int32_t i = 0; i < M * P; ++i)
