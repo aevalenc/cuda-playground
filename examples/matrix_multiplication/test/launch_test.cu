@@ -64,9 +64,13 @@ void LaunchAccelerated(const int32_t* A,
     cudaMemcpy(d_B, B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice);
 
     // Launch kernel
-    const dim3 block_size(2, 2, 1);
-    const dim3 grid_size(2, 2, 1);
-    // printf("Launching kernel with %d blocks of %d threads each\n", num_blocks, kTestBlockSize);
+    const dim3 block_size(128, 1, 1);
+    const dim3 grid_size(4, 4, 1);
+    printf("Launching kernel with %d blocks in x, %d blocks in y, and %d threads per block\n",
+           grid_size.x,
+           grid_size.y,
+           block_size.x);
+
     AccelMatMultGPU<<<block_size, grid_size>>>(d_A, d_B, d_C, M, N, P);
     cudaDeviceSynchronize();
 

@@ -21,5 +21,6 @@
 
 double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P);
 double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P);
+double LaunchGPUAccelerated(std::int32_t M, std::int32_t N, std::int32_t P);
 
 #endif  // CUDA_EXAMPLES_THREADS_BLOCKS_AND_GRIDS_LAUNCH_H

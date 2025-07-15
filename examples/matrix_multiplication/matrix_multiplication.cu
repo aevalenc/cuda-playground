@@ -74,11 +74,11 @@ __global__ void AccelMatMultGPU(std::int32_t* A,
         sum += A[j + N * row] * B[column + P * j];
     }
     C[column + row * P] = sum;
-    printf("Thread (%d, %d): row = %d, column= %d, C[%d] = %d\n",
-           blockIdx.x,
-           blockIdx.y,
-           row,
-           column,
-           column + row * P,
-           C[column + row * P]);
+    // printf("Thread (%d, %d): row = %d, column= %d, C[%d] = %d\n",
+    //        blockIdx.x,
+    //        blockIdx.y,
+    //        row,
+    //        column,
+    //        column + row * P,
+    //        C[column + row * P]);
 }
