@@ -23,7 +23,6 @@ __global__ void AccelMatMultGPU(std::int32_t* A,
                                 std::int32_t M,
                                 std::int32_t N,
                                 std::int32_t P);
-__device__ constexpr std::int32_t kBlockSize = 128;  // Define the block size
 }
 
 #endif  // EXAMPLES_MATRIX_MULTIPLICATION_MATRIX_MULTIPLICATION_H

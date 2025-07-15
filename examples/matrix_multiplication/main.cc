@@ -9,9 +9,9 @@ int main()
 {
     // Set the number of points to be processed
     const std::int32_t M = 3000;
-    const std::int32_t N = 2000;
+    const std::int32_t N = 200;
     const std::int32_t P = 2000;
-    const std::int32_t max_runs = 5;
+    const std::int32_t max_runs = 3;
 
     auto min_time_cpu = 1000.0;
     for (std::int32_t run = 0; run < max_runs; ++run)
@@ -49,7 +49,7 @@ int main()
         }
     }
 
-    std::cout << "Minimum CPU time: " << min_time_cpu << " s" << "\n";
+    std::cout << "\nMinimum CPU time: " << min_time_cpu << " s" << "\n";
     std::cout << "Minimum GPU time: " << min_time_gpu << " s" << "\n";
     std::cout << "Minimum Accelerated GPU time: " << min_gpu_accelerated_time << " s" << "\n";
 

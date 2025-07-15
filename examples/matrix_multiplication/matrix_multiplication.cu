@@ -59,8 +59,8 @@ __global__ void AccelMatMultGPU(std::int32_t* A,
                                 std::int32_t P)
 {
     // Calculate the global thread index
-    std::int32_t row = blockIdx.x * blockDim.x + threadIdx.x;
-    std::int32_t column = blockIdx.y * blockDim.y + threadIdx.y;
+    std::int32_t column = blockIdx.x * blockDim.x + threadIdx.x;
+    std::int32_t row = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (row >= M || column >= P)
         return;  // Out of bounds check

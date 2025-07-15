@@ -22,7 +22,7 @@ double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P)
     {
         for (std::int32_t j = 0; j < N; ++j)
         {
-            host_A[j + N * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+            host_A[j + N * i] = 2 + (i + j);  // Example initialization, can be random or specific values
         }
     }
 
@@ -30,7 +30,7 @@ double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P)
     {
         for (std::int32_t j = 0; j < P; ++j)
         {
-            host_B[j + P * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+            host_B[j + P * i] = 2 + (i + j);  // Example initialization, can be random or specific values
         }
     }
 
@@ -72,7 +72,7 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
     {
         for (std::int32_t j = 0; j < N; ++j)
         {
-            host_A[j + N * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+            host_A[j + N * i] = 2 + (i + j);  // Example initialization, can be random or specific values
         }
     }
 
@@ -80,7 +80,7 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
     {
         for (std::int32_t j = 0; j < P; ++j)
         {
-            host_B[j + P * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+            host_B[j + P * i] = 2 + (i + j);  // Example initialization, can be random or specific values
         }
     }
 
@@ -172,7 +172,7 @@ double LaunchGPUAccelerated(std::int32_t M, std::int32_t N, std::int32_t P)
     {
         for (std::int32_t j = 0; j < N; ++j)
         {
-            host_A[j + N * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+            host_A[j + N * i] = 2 + (i + j);  // Example initialization, can be random or specific values
         }
     }
 
@@ -180,7 +180,7 @@ double LaunchGPUAccelerated(std::int32_t M, std::int32_t N, std::int32_t P)
     {
         for (std::int32_t j = 0; j < P; ++j)
         {
-            host_B[j + P * i] = 2 * (i + j);  // Example initialization, can be random or specific values
+            host_B[j + P * i] = 2 + (i + j);  // Example initialization, can be random or specific values
         }
     }
 
@@ -224,12 +224,13 @@ double LaunchGPUAccelerated(std::int32_t M, std::int32_t N, std::int32_t P)
         return -1;
     }
 
-    const auto num_blocks_x = (M + kBlockSize - 1) / kBlockSize;
-    const auto num_blocks_y = (P + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
 
     std::cout << "Launching kernel with " << num_blocks_x << " blocks in x, " << num_blocks_y << " blocks in y, and "
               << kBlockSize << " threads per block\n";
-    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y, 1), kBlockSize>>>(device_A, device_B, device_C, M, N, P);
+    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y, 1), dim3(kBlockSize, kBlockSize)>>>(
+        device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
