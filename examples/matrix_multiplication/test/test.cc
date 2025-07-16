@@ -52,6 +52,26 @@ class MultiDimensionalGridTestFixture : public ::testing::Test
         EXPECT_EQ(result[15], 344);
     }
 
+    void CheckNonSymetricResults(std::int32_t* result)
+    {
+        EXPECT_EQ(result[0], 92);
+        EXPECT_EQ(result[1], 146);
+        EXPECT_EQ(result[2], 200);
+        EXPECT_EQ(result[3], 254);
+        EXPECT_EQ(result[4], 38);
+        EXPECT_EQ(result[5], 62);
+        EXPECT_EQ(result[6], 86);
+        EXPECT_EQ(result[7], 110);
+        EXPECT_EQ(result[8], 46);
+        EXPECT_EQ(result[9], 84);
+        EXPECT_EQ(result[10], 122);
+        EXPECT_EQ(result[11], 160);
+        EXPECT_EQ(result[12], 78);
+        EXPECT_EQ(result[13], 140);
+        EXPECT_EQ(result[14], 202);
+        EXPECT_EQ(result[15], 264);
+    }
+
   public:
     std::int32_t M{4};
     std::int32_t N{4};
@@ -59,6 +79,8 @@ class MultiDimensionalGridTestFixture : public ::testing::Test
 
     std::int32_t h_A[16] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
     std::int32_t h_B[16] = {0, 2, 4, 6, 2, 4, 6, 8, 4, 6, 8, 10, 6, 8, 10, 12};
+
+    std::int32_t host_A_alt[16] = {7, 4, 6, 10, 3, 2, 4, 3, 5, 6, 7, 1, 10, 10, 4, 7};
 };
 
 TEST_F(MultiDimensionalGridTestFixture, TestWithAcceleratedKernel)
@@ -73,7 +95,7 @@ TEST_F(MultiDimensionalGridTestFixture, TestWithAcceleratedKernel)
     CheckResults(h_C.data());
 }
 
-TEST_F(MultiDimensionalGridTestFixture, TestWithSharedMemoryKernel)
+TEST_F(MultiDimensionalGridTestFixture, GivenSameMatricesTestWithSharedMemoryKernel)
 {
     // Given
     std::vector<std::int32_t> h_C(M * P, 0);
@@ -83,6 +105,18 @@ TEST_F(MultiDimensionalGridTestFixture, TestWithSharedMemoryKernel)
 
     // Expect
     CheckResults(h_C.data());
+}
+
+TEST_F(MultiDimensionalGridTestFixture, GivenDifferentMatricesTestWithSharedMemoryKernel)
+{
+    // Given
+    std::vector<std::int32_t> h_C(M * P, 0);
+
+    // Call
+    LaunchWithSharedMemory(host_A_alt, h_B, h_C.data(), M, N, P);
+
+    // Expect
+    CheckNonSymetricResults(h_C.data());
 }
 
 TEST_F(MultiDimensionalGridTestFixture, GivenSameInputExpectEqualOutput)
@@ -103,4 +137,25 @@ TEST_F(MultiDimensionalGridTestFixture, GivenSameInputExpectEqualOutput)
         EXPECT_EQ(h_C_gpu[i], h_C_accelerated_gpu[i]) << "Mismatch w/ accelerated matmult at index " << i;
         EXPECT_EQ(h_C_gpu[i], h_C_shared_gpu[i]) << "Mismatch w/ shared memory matmult at index " << i;
     }
+}
+
+TEST(SharedMemoryKernelTest, GivenDifferentSizedMatricesExpectCorrectOutput)
+{
+    // Given
+    const std::int32_t M = 10;
+    const std::int32_t N = 2;
+    const std::int32_t P = 5;
+
+    // When
+    const auto h_A = utils::InitializeTestMatrix(M, N);
+    const auto h_B = utils::InitializeTestMatrix(N, P);
+    std::int32_t h_C[M * P] = {0};
+
+    // Call
+    LaunchWithSharedMemory(h_A, h_B, h_C, M, N, P);
+
+    // Check results
+    EXPECT_EQ(h_C[0], 13);
+    EXPECT_EQ(h_C[1], 18);
+    EXPECT_EQ(h_C[2], 23);
 }
