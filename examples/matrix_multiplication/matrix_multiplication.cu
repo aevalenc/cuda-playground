@@ -95,13 +95,6 @@ __global__ void MatMultWithSharedMemoryGPU(std::int32_t* A,
         if (row < M && current_block * blockDim.x + threadIdx.x < N)
         {
             shared_A[threadIdx.y][threadIdx.x] = A[row * N + current_block * blockDim.x + threadIdx.x];
-            // printf("Block (%d,%d): Accessing global A[%d] | shared_A[%d][%d] = %d\n",
-            //        blockIdx.y,
-            //        blockIdx.x,
-            //        row * N + current_block * blockDim.x + threadIdx.x,
-            //        threadIdx.y,
-            //        threadIdx.x,
-            //        shared_A[threadIdx.y][threadIdx.x]);
         }
         else
         {
@@ -111,13 +104,6 @@ __global__ void MatMultWithSharedMemoryGPU(std::int32_t* A,
         if (column < P && current_block * blockDim.y + threadIdx.y < N)
         {
             shared_B[threadIdx.y][threadIdx.x] = B[(current_block * blockDim.y + threadIdx.y) * P + column];
-            // printf("Block (%d,%d): Accessing global B[%d] | shared_B[%d][%d] = %d\n",
-            //        blockIdx.y,
-            //        blockIdx.x,
-            //        (current_block * blockDim.y + threadIdx.y) * P + column,
-            //        threadIdx.y,
-            //        threadIdx.x,
-            //        shared_B[threadIdx.y][threadIdx.x]);
         }
         else
         {
