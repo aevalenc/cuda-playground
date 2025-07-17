@@ -7,6 +7,7 @@
 #include "examples/matrix_multiplication/utils.h"
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <time.h>
 
 void Launch(const int32_t* A,
             const int32_t* B,
@@ -15,24 +16,23 @@ void Launch(const int32_t* A,
             const std::int32_t N,
             const std::int32_t P)
 {
-
     // Allocate device memory
-    std::int32_t* d_A;
-    std::int32_t* d_B;
-    std::int32_t* d_C;
-    cudaMalloc(&d_A, sizeof(std::int32_t) * M * N);
-    cudaMalloc(&d_B, sizeof(std::int32_t) * N * P);
-    cudaMalloc(&d_C, sizeof(std::int32_t) * M * P);
+    std::int32_t* d_A = nullptr;
+    std::int32_t* d_B = nullptr;
+    std::int32_t* d_C = nullptr;
 
-    // Copy points to device
-    cudaMemcpy(d_A, A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice);
+    if (utils::AllocateAndCopyToDevice(d_A, d_B, d_C, A, B, M, N, P) != 0)
+    {
+        return;  // Error already handled in AllocateAndCopyToDevice
+    }
 
     // Launch kernel (4 threads per block)
     const auto num_blocks = (M + kTestBlockSize - 1) / kTestBlockSize;
     printf("Launching kernel with %d blocks of %d threads each\n", num_blocks, kTestBlockSize);
     MatMultGPU<<<num_blocks, kTestBlockSize>>>(d_A, d_B, d_C, M, N, P);
-    cudaDeviceSynchronize();
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
 
     // Copy results back
     cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost);
@@ -54,24 +54,11 @@ void LaunchAccelerated(const int32_t* A,
     std::int32_t* d_A;
     std::int32_t* d_B;
     std::int32_t* d_C;
-    cudaMalloc(&d_A, sizeof(std::int32_t) * M * N);
-    cudaMalloc(&d_B, sizeof(std::int32_t) * N * P);
-    cudaMalloc(&d_C, sizeof(std::int32_t) * M * P);
 
-    // Copy points to device
-    if (cudaMemcpy(d_A, A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice) != cudaSuccess)
+    const auto start = clock();
+    if (utils::AllocateAndCopyToDevice(d_A, d_B, d_C, A, B, M, N, P) != 0)
     {
-        std::cerr << "Failed to copy data from host to device for Matrix A\n";
-        cudaFree(d_A);
-        cudaFree(d_B);
-        return;
-    }
-    if (cudaMemcpy(d_B, B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from host to device for Matrix A\n";
-        cudaFree(d_A);
-        cudaFree(d_B);
-        return;
+        return;  // Error already handled in AllocateAndCopyToDevice
     }
 
     // Launch kernel
@@ -89,6 +76,56 @@ void LaunchAccelerated(const int32_t* A,
     CUDA_CHECK(cudaDeviceSynchronize());
 
     // Copy results back
+    if (cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost) != cudaSuccess)
+    {
+        std::cerr << "Failed to copy data from device to host\n";
+        cudaFree(d_A);
+        cudaFree(d_B);
+        cudaFree(d_C);
+        return;
+    }
+    const auto end = clock();
+    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
+
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+}
+
+void LaunchWithSharedMemory(const int32_t* A,
+                            const int32_t* B,
+                            int32_t* C,
+                            const std::int32_t M,
+                            const std::int32_t N,
+                            const std::int32_t P)
+{  // Allocate device memory
+    std::int32_t* d_A;
+    std::int32_t* d_B;
+    std::int32_t* d_C;
+
+    const auto start = clock();
+    if (utils::AllocateAndCopyToDevice(d_A, d_B, d_C, A, B, M, N, P) != 0)
+    {
+        return;  // Error already handled in AllocateAndCopyToDevice
+    }
+
+    // Launch kernel
+    const auto num_blocks_x = (P + kTestBlockSize - 1) / kTestBlockSize;
+    const auto num_blocks_y = (M + kTestBlockSize - 1) / kTestBlockSize;
+
+    printf("Launching kernel with %d blocks in x, %d blocks in y, and %d threads per block\n",
+           num_blocks_x,
+           num_blocks_y,
+           kTestBlockSize);
+
+    MatMultWithSharedMemoryGPU<<<dim3(num_blocks_x, num_blocks_y), dim3(kTestBlockSize, kTestBlockSize)>>>(
+        d_A, d_B, d_C, M, N, P);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // Copy results back
 
     if (cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost) != cudaSuccess)
     {
@@ -98,6 +135,9 @@ void LaunchAccelerated(const int32_t* A,
         cudaFree(d_C);
         return;
     }
+    const auto end = clock();
+    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
 
     cudaFree(d_A);
     cudaFree(d_B);

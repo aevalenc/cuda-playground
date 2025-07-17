@@ -1,9 +1,9 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_cuda//cuda:defs.bzl", "cuda_binary", "cuda_library")
 
-cc_library(
+cuda_library(
     name = "matrix_utils",
-    srcs = ["utils.cc"],
+    srcs = ["utils.cu"],
     hdrs = ["utils.h"],
     visibility = ["//visibility:public"],
 )
@@ -12,6 +12,10 @@ cuda_library(
     name = "matrix_multiplication_kernel",
     srcs = ["matrix_multiplication.cu"],
     hdrs = ["matrix_multiplication.h"],
+    # ptxasopts = [
+    #     "-v",
+    #     "--maxrregcount=32",
+    # ],
     visibility = ["//visibility:public"],
 )
 
@@ -20,7 +24,10 @@ cuda_library(
     srcs = ["launch.cu"],
     hdrs = ["launch.h"],
     visibility = ["//visibility:public"],
-    deps = [":matrix_multiplication_kernel"],
+    deps = [
+        ":matrix_multiplication_kernel",
+        ":matrix_utils",
+    ],
 )
 
 cuda_binary(
