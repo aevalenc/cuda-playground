@@ -12,6 +12,10 @@ cuda_library(
     name = "matrix_multiplication_kernel",
     srcs = ["matrix_multiplication.cu"],
     hdrs = ["matrix_multiplication.h"],
+    # ptxasopts = [
+    #     "-v",
+    #     "--maxrregcount=32",
+    # ],
     visibility = ["//visibility:public"],
 )
 

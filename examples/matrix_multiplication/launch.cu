@@ -4,35 +4,19 @@
 
 #include "examples/matrix_multiplication/launch.h"
 #include "examples/matrix_multiplication/matrix_multiplication.h"
+#include "examples/matrix_multiplication/utils.h"
 #include <cstdint>
 #include <cuda_runtime.h>
 #include <iostream>
 #include <time.h>
 
-double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P)
+double LaunchCPU(const std::int32_t M, const std::int32_t N, const std::int32_t P)
 {
 
-    // Allocate device memory for two arrays of double2 points
-    std::int32_t* host_A = new std::int32_t[M * N];
-    std::int32_t* host_B = new std::int32_t[N * P];
-    std::int32_t* host_C = new std::int32_t[M * P];
-
     // Initialize the arrays
-    for (std::int32_t i = 0; i < M; ++i)
-    {
-        for (std::int32_t j = 0; j < N; ++j)
-        {
-            host_A[j + N * i] = 2 + (i + j);  // Example initialization, can be random or specific values
-        }
-    }
-
-    for (std::int32_t i = 0; i < N; ++i)
-    {
-        for (std::int32_t j = 0; j < P; ++j)
-        {
-            host_B[j + P * i] = 2 + (i + j);  // Example initialization, can be random or specific values
-        }
-    }
+    const auto host_A = utils::InitializeTestMatrix(M, N);
+    const auto host_B = utils::InitializeTestMatrix(N, P);
+    std::int32_t* host_C = new std::int32_t[M * P];
 
     const auto start = clock();
     for (std::int32_t i = 0; i < M; ++i)
@@ -60,73 +44,28 @@ double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P)
     return elapsed_time;
 }
 
-double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
+double LaunchGPU(const std::int32_t M, const std::int32_t N, const std::int32_t P)
 {
-    // Allocate device memory for two arrays of double2 points
-    std::int32_t* host_A = new std::int32_t[M * N];
-    std::int32_t* host_B = new std::int32_t[N * P];
+    // Initialize the arrays
+    const auto host_A = utils::InitializeTestMatrix(M, N);
+    const auto host_B = utils::InitializeTestMatrix(N, P);
     std::int32_t* host_C = new std::int32_t[M * P];
 
-    // Initialize the arrays
-    for (std::int32_t i = 0; i < M; ++i)
-    {
-        for (std::int32_t j = 0; j < N; ++j)
-        {
-            host_A[j + N * i] = 2 + (i + j);  // Example initialization, can be random or specific values
-        }
-    }
-
-    for (std::int32_t i = 0; i < N; ++i)
-    {
-        for (std::int32_t j = 0; j < P; ++j)
-        {
-            host_B[j + P * i] = 2 + (i + j);  // Example initialization, can be random or specific values
-        }
-    }
-
+    // Allocate device memory
     std::int32_t* device_A;
     std::int32_t* device_B;
     std::int32_t* device_C;
 
     const auto start = clock();
-    if (cudaMalloc((void**)&device_A, sizeof(std::int32_t) * M * N) != cudaSuccess)
+    if (utils::AllocateAndCopyToDevice(device_A, device_B, device_C, host_A, host_B, M, N, P) != 0)
     {
-        std::cerr << "Failed to allocate device memory for device matrix A\n";
-        return -1;
-    }
-    if (cudaMalloc((void**)&device_B, sizeof(std::int32_t) * N * P) != cudaSuccess)
-    {
-        std::cerr << "Failed to allocate device memory for device matrix B;\n";
-        cudaFree(device_A);
-        return -1;
-    }
-    if (cudaMalloc((void**)&device_C, sizeof(std::int32_t) * M * P) != cudaSuccess)
-    {
-        std::cerr << "Failed to allocate device memory for device matrix C;\n";
-        cudaFree(device_A);
-        cudaFree(device_B);
         return -1;
     }
 
-    if (cudaMemcpy(device_A, host_A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from host to device for Matrix A\n";
-        cudaFree(device_A);
-        cudaFree(device_B);
-        return -1;
-    }
-
-    if (cudaMemcpy(device_B, host_B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from host to device for Matrix B\n";
-        cudaFree(device_A);
-        cudaFree(device_B);
-        return -1;
-    }
-
-    const auto num_blocks = (M + kBlockSize - 1) / kBlockSize;
-    std::cout << "Launching kernel with " << num_blocks << " blocks of " << kBlockSize << " threads each\n";
-    MatMultGPU<<<num_blocks, kBlockSize>>>(device_A, device_B, device_C, M, N, P);
+    // Launch kernel
+    const auto num_blocks = (M + kBlockSizeX - 1) / kBlockSizeX;
+    std::cout << "Launching kernel with " << num_blocks << " blocks of " << kBlockSizeX << " threads each\n";
+    MatMultGPU<<<num_blocks, kBlockSizeX>>>(device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -160,77 +99,93 @@ double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P)
     return elapsed_time;
 }
 
-double LaunchGPUAccelerated(std::int32_t M, std::int32_t N, std::int32_t P)
+double LaunchGPUAccelerated(const std::int32_t M, const std::int32_t N, const std::int32_t P)
 {
-    // Allocate device memory for two arrays of double2 points
-    std::int32_t* host_A = new std::int32_t[M * N];
-    std::int32_t* host_B = new std::int32_t[N * P];
-    std::int32_t* host_C = new std::int32_t[M * P];
 
     // Initialize the arrays
-    for (std::int32_t i = 0; i < M; ++i)
-    {
-        for (std::int32_t j = 0; j < N; ++j)
-        {
-            host_A[j + N * i] = 2 + (i + j);  // Example initialization, can be random or specific values
-        }
-    }
+    const auto host_A = utils::InitializeTestMatrix(M, N);
+    const auto host_B = utils::InitializeTestMatrix(N, P);
+    std::int32_t* host_C = new std::int32_t[M * P];
 
-    for (std::int32_t i = 0; i < N; ++i)
-    {
-        for (std::int32_t j = 0; j < P; ++j)
-        {
-            host_B[j + P * i] = 2 + (i + j);  // Example initialization, can be random or specific values
-        }
-    }
-
+    // Allocate device memory
     std::int32_t* device_A;
     std::int32_t* device_B;
     std::int32_t* device_C;
 
     const auto start = clock();
-    if (cudaMalloc((void**)&device_A, sizeof(std::int32_t) * M * N) != cudaSuccess)
+    if (utils::AllocateAndCopyToDevice(device_A, device_B, device_C, host_A, host_B, M, N, P) != 0)
     {
-        std::cerr << "Failed to allocate device memory for device matrix A\n";
-        return -1;
-    }
-    if (cudaMalloc((void**)&device_B, sizeof(std::int32_t) * N * P) != cudaSuccess)
-    {
-        std::cerr << "Failed to allocate device memory for device matrix B;\n";
-        cudaFree(device_A);
-        return -1;
-    }
-    if (cudaMalloc((void**)&device_C, sizeof(std::int32_t) * M * P) != cudaSuccess)
-    {
-        std::cerr << "Failed to allocate device memory for device matrix C;\n";
-        cudaFree(device_A);
-        cudaFree(device_B);
         return -1;
     }
 
-    if (cudaMemcpy(device_A, host_A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from host to device for Matrix A\n";
-        cudaFree(device_A);
-        cudaFree(device_B);
-        return -1;
-    }
+    const auto num_blocks_x = (P + kBlockSizeX - 1) / kBlockSizeX;
+    const auto num_blocks_y = (M + kBlockSizeX - 1) / kBlockSizeX;
 
-    if (cudaMemcpy(device_B, host_B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice) != cudaSuccess)
-    {
-        std::cerr << "Failed to copy data from host to device for Matrix B\n";
-        cudaFree(device_A);
-        cudaFree(device_B);
-        return -1;
-    }
-
-    const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
-    const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
-
-    std::cout << "Launching kernel with " << num_blocks_x << " blocks in x, " << num_blocks_y << " blocks in y, and "
-              << kBlockSize << " threads per block\n";
-    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y, 1), dim3(kBlockSize, kBlockSize)>>>(
+    std::cout << "Launching kernel with configuration: (" << num_blocks_x << ", " << num_blocks_y << ") x ("
+              << kBlockSizeX << ", " << kBlockSizeY << ") \n";
+    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y, 1), dim3(kBlockSizeX, kBlockSizeX)>>>(
         device_A, device_B, device_C, M, N, P);
+
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    if (cudaMemcpy(host_C, device_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost) != cudaSuccess)
+    {
+        std::cerr << "Failed to copy data from device to host\n";
+        delete[] host_A;
+        delete[] host_B;
+        delete[] host_C;
+        cudaFree(device_A);
+        cudaFree(device_B);
+        cudaFree(device_C);
+        return -1;
+    }
+
+    const auto end = clock();
+    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
+
+    delete[] host_A;
+    delete[] host_B;
+    delete[] host_C;
+
+    cudaFree(device_A);
+    cudaFree(device_B);
+    cudaFree(device_C);
+
+    cudaDeviceReset();
+
+    return elapsed_time;
+}
+
+double LaunchGPUWithSharedMemory(const std::int32_t M, const std::int32_t N, const std::int32_t P)
+{
+
+    // Initialize the arrays
+    const auto host_A = utils::InitializeTestMatrix(M, N);
+    const auto host_B = utils::InitializeTestMatrix(N, P);
+    std::int32_t* host_C = new std::int32_t[M * P];
+
+    // Allocate device memory
+    std::int32_t* device_A;
+    std::int32_t* device_B;
+    std::int32_t* device_C;
+
+    const auto start = clock();
+    if (utils::AllocateAndCopyToDevice(device_A, device_B, device_C, host_A, host_B, M, N, P) != 0)
+    {
+        return -1;
+    }
+
+    const auto num_blocks_x = (P + kBlockSizeX - 1) / kBlockSizeX;
+    const auto num_blocks_y = (M + kBlockSizeY - 1) / kBlockSizeY;
+
+    const auto grid_dim = dim3(num_blocks_x, num_blocks_y, 1);
+    const auto block_dim = dim3(kBlockSizeX, kBlockSizeY);
+
+    std::cout << "Launching kernel with configuration: (" << num_blocks_x << ", " << num_blocks_y << ") x ("
+              << kBlockSizeX << ", " << kBlockSizeY << ") \n";
+    MatMultWithSharedMemoryGPU<<<grid_dim, block_dim>>>(device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());

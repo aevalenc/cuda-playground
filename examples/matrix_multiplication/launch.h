@@ -2,8 +2,8 @@
  * File launch.h
  */
 
-#ifndef CUDA_EXAMPLES_THREADS_BLOCKS_AND_GRIDS_LAUNCH_H
-#define CUDA_EXAMPLES_THREADS_BLOCKS_AND_GRIDS_LAUNCH_H
+#ifndef EXAMPLES_MATRIX_MULTIPLICATION_LAUNCH_H
+#define EXAMPLES_MATRIX_MULTIPLICATION_LAUNCH_H
 
 #include <cstdint>
 #include <cuda_runtime.h>
@@ -19,10 +19,12 @@
         }                                                                                                    \
     } while (0)
 
-__device__ constexpr std::int32_t kBlockSize = 32;  // Define the block size
+__device__ constexpr std::int32_t kBlockSizeX = 32;
+__device__ constexpr std::int32_t kBlockSizeY = 32;
 
-double LaunchCPU(std::int32_t M, std::int32_t N, std::int32_t P);
-double LaunchGPU(std::int32_t M, std::int32_t N, std::int32_t P);
-double LaunchGPUAccelerated(std::int32_t M, std::int32_t N, std::int32_t P);
+double LaunchCPU(const std::int32_t M, const std::int32_t N, const std::int32_t P);
+double LaunchGPU(const std::int32_t M, const std::int32_t N, const std::int32_t P);
+double LaunchGPUAccelerated(const std::int32_t M, const std::int32_t N, const std::int32_t P);
+double LaunchGPUWithSharedMemory(const std::int32_t M, const std::int32_t N, const std::int32_t P);
 
-#endif  // CUDA_EXAMPLES_THREADS_BLOCKS_AND_GRIDS_LAUNCH_H
+#endif  // EXAMPLES_MATRIX_MULTIPLICATION_LAUNCH_H
