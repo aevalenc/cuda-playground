@@ -27,9 +27,9 @@ void Launch(const int32_t* A,
     }
 
     // Launch kernel (4 threads per block)
-    const auto num_blocks = (M + kTestBlockSize - 1) / kTestBlockSize;
-    printf("Launching kernel with %d blocks of %d threads each\n", num_blocks, kTestBlockSize);
-    MatMultGPU<<<num_blocks, kTestBlockSize>>>(d_A, d_B, d_C, M, N, P);
+    const auto num_blocks = (M + kBlockSize - 1) / kBlockSize;
+    printf("Launching kernel with %d blocks of %d threads each\n", num_blocks, kBlockSize);
+    MatMultGPU<<<num_blocks, kBlockSize>>>(d_A, d_B, d_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -62,15 +62,15 @@ void LaunchAccelerated(const int32_t* A,
     }
 
     // Launch kernel
-    const auto num_blocks_x = (P + kTestBlockSize - 1) / kTestBlockSize;
-    const auto num_blocks_y = (M + kTestBlockSize - 1) / kTestBlockSize;
+    const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
 
     printf("Launching kernel with %d blocks in x, %d blocks in y, and %d threads per block\n",
            num_blocks_x,
            num_blocks_y,
-           kTestBlockSize);
+           kBlockSize);
 
-    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y), dim3(kTestBlockSize, kTestBlockSize)>>>(d_A, d_B, d_C, M, N, P);
+    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y), dim3(kBlockSize, kBlockSize)>>>(d_A, d_B, d_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -111,16 +111,19 @@ void LaunchWithSharedMemory(const int32_t* A,
     }
 
     // Launch kernel
-    const auto num_blocks_x = (P + kTestBlockSize - 1) / kTestBlockSize;
-    const auto num_blocks_y = (M + kTestBlockSize - 1) / kTestBlockSize;
+    const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
 
-    printf("Launching kernel with %d blocks in x, %d blocks in y, and %d threads per block\n",
+    const auto grid_dim = dim3(num_blocks_x, num_blocks_y, 1);
+    const auto block_dim = dim3(kBlockSize, kBlockSize);
+
+    printf("Launching kernel with configuration: (%d, %d) x (%d, %d) threads per block\n",
            num_blocks_x,
            num_blocks_y,
-           kTestBlockSize);
+           kBlockSize,
+           kBlockSize);
 
-    MatMultWithSharedMemoryGPU<<<dim3(num_blocks_x, num_blocks_y), dim3(kTestBlockSize, kTestBlockSize)>>>(
-        d_A, d_B, d_C, M, N, P);
+    MatMultWithSharedMemoryGPU<<<grid_dim, block_dim>>>(d_A, d_B, d_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());

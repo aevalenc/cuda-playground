@@ -16,8 +16,6 @@
         }                                                                                                    \
     } while (0)
 
-__device__ constexpr int32_t kTestBlockSize = 2;
-
 void Launch(const int32_t* A,
             const int32_t* B,
             int32_t* C,

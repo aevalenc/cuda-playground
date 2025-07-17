@@ -143,7 +143,7 @@ TEST(SharedMemoryKernelTest, GivenDifferentSizedMatricesExpectCorrectOutput)
 {
     // Given
     const std::int32_t M = 10;
-    const std::int32_t N = 2;
+    const std::int32_t N = 10;
     const std::int32_t P = 5;
 
     // When
@@ -155,7 +155,8 @@ TEST(SharedMemoryKernelTest, GivenDifferentSizedMatricesExpectCorrectOutput)
     LaunchWithSharedMemory(h_A, h_B, h_C, M, N, P);
 
     // Check results
-    EXPECT_EQ(h_C[0], 13);
-    EXPECT_EQ(h_C[1], 18);
-    EXPECT_EQ(h_C[2], 23);
+    EXPECT_EQ(h_C[0], 505);
+    EXPECT_EQ(h_C[1], 570);
+    EXPECT_EQ(h_C[2], 635);
+    EXPECT_EQ(h_C[47], 1400);
 }
