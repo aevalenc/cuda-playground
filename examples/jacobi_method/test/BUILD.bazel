@@ -1,0 +1,23 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+# load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+# cuda_library(
+#     name = "launch_main",
+#     srcs = ["launch_test.cu"],
+#     hdrs = ["launch_test.cuh"],
+#     deps = [
+#         "//examples/jacobi:jacobi_method_kernel",
+#         "//examples/jacobi:matrix_utils",
+#     ],
+# )
+
+cc_test(
+    name = "jacobi_method_tests",
+    srcs = ["test.cc"],
+    deps = [
+        # ":launch_main",
+        "//examples/jacobi_method:jacobi_lib",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
