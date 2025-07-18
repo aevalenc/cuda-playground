@@ -63,9 +63,9 @@ double LaunchGPU(const std::int32_t M, const std::int32_t N, const std::int32_t 
     }
 
     // Launch kernel
-    const auto num_blocks = (M + kBlockSizeX - 1) / kBlockSizeX;
-    std::cout << "Launching kernel with " << num_blocks << " blocks of " << kBlockSizeX << " threads each\n";
-    MatMultGPU<<<num_blocks, kBlockSizeX>>>(device_A, device_B, device_C, M, N, P);
+    const auto num_blocks = (M + kBlockSize - 1) / kBlockSize;
+    std::cout << "Launching kernel with " << num_blocks << " blocks of " << kBlockSize << " threads each\n";
+    MatMultGPU<<<num_blocks, kBlockSize>>>(device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
@@ -118,12 +118,12 @@ double LaunchGPUAccelerated(const std::int32_t M, const std::int32_t N, const st
         return -1;
     }
 
-    const auto num_blocks_x = (P + kBlockSizeX - 1) / kBlockSizeX;
-    const auto num_blocks_y = (M + kBlockSizeX - 1) / kBlockSizeX;
+    const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
 
     std::cout << "Launching kernel with configuration: (" << num_blocks_x << ", " << num_blocks_y << ") x ("
-              << kBlockSizeX << ", " << kBlockSizeY << ") \n";
-    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y, 1), dim3(kBlockSizeX, kBlockSizeX)>>>(
+              << kBlockSize << ", " << kBlockSize << ") \n";
+    AccelMatMultGPU<<<dim3(num_blocks_x, num_blocks_y, 1), dim3(kBlockSize, kBlockSize)>>>(
         device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
@@ -177,14 +177,14 @@ double LaunchGPUWithSharedMemory(const std::int32_t M, const std::int32_t N, con
         return -1;
     }
 
-    const auto num_blocks_x = (P + kBlockSizeX - 1) / kBlockSizeX;
-    const auto num_blocks_y = (M + kBlockSizeY - 1) / kBlockSizeY;
+    const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
 
     const auto grid_dim = dim3(num_blocks_x, num_blocks_y, 1);
-    const auto block_dim = dim3(kBlockSizeX, kBlockSizeY);
+    const auto block_dim = dim3(kBlockSize, kBlockSize);
 
     std::cout << "Launching kernel with configuration: (" << num_blocks_x << ", " << num_blocks_y << ") x ("
-              << kBlockSizeX << ", " << kBlockSizeY << ") \n";
+              << kBlockSize << ", " << kBlockSize << ") \n";
     MatMultWithSharedMemoryGPU<<<grid_dim, block_dim>>>(device_A, device_B, device_C, M, N, P);
 
     CUDA_CHECK(cudaGetLastError());
