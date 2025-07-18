@@ -19,9 +19,6 @@
         }                                                                                                    \
     } while (0)
 
-__device__ constexpr std::int32_t kBlockSizeX = 32;
-__device__ constexpr std::int32_t kBlockSizeY = 32;
-
 double LaunchCPU(const std::int32_t M, const std::int32_t N, const std::int32_t P);
 double LaunchGPU(const std::int32_t M, const std::int32_t N, const std::int32_t P);
 double LaunchGPUAccelerated(const std::int32_t M, const std::int32_t N, const std::int32_t P);

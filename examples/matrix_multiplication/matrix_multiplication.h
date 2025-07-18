@@ -9,6 +9,8 @@
 
 #include <cstdint>
 
+__device__ constexpr std::int32_t kBlockSize = 2;
+
 extern "C" {
 __global__ void MatVectorMultGPU(std::int32_t* A, std::int32_t* b, std::int32_t* C, std::int32_t N);
 __global__ void MatMultGPU(std::int32_t* A,
