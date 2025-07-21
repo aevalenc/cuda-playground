@@ -7,7 +7,7 @@
 #include "examples/jacobi_method/jacobi.h"
 #include <cstdint>
 
-__global__ void JacobiSolveGPU(double* A, double* b, double* xn, double* x, std::int32_t N)
+__global__ void JacobiSolveGPU(const double* A, const double* b, double* x0, double* x, std::int32_t N)
 {
     // Get Global thread index
     std::int32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -18,7 +18,7 @@ __global__ void JacobiSolveGPU(double* A, double* b, double* xn, double* x, std:
     {
         if (k != idx)
         {
-            sum += A[k + N * idx] * xn[k];
+            sum += A[k + N * idx] * x0[k];
         }
     }
 
