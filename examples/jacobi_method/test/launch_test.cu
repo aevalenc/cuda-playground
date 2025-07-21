@@ -3,63 +3,85 @@
  *
  */
 
-#include "examples/matrix_multiplication/matrix_multiplication.h"
-#include "examples/matrix_multiplication/test/launch_test.cuh"
-#include "examples/matrix_multiplication/utils.h"
+#include "examples/jacobi_method/jacobi.h"
+#include "examples/jacobi_method/test/launch_test.cuh"
+#include "examples/jacobi_method/utils.h"
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <time.h>
 
-// void LaunchWithSharedMemory(const int32_t* A,
-//                             const int32_t* B,
-//                             int32_t* C,
-//                             const std::int32_t M,
-//                             const std::int32_t N,
-//                             const std::int32_t P)
-// {  // Allocate device memory
-//     std::int32_t* d_A;
-//     std::int32_t* d_B;
-//     std::int32_t* d_C;
+void LaunchJacobiSolveGPU(const double* A, const double* b, double* x0, double* x, const std::int32_t N)
 
-//     const auto start = clock();
-//     if (utils::AllocateAndCopyToDevice(d_A, d_B, d_C, A, B, M, N, P) != 0)
-//     {
-//         return;  // Error already handled in AllocateAndCopyToDevice
-//     }
+{
+    // Allocate device memory
+    double* device_A;
+    double* device_b;
+    double* device_x0;
+    double* device_x;
 
-//     // Launch kernel
-//     const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
-//     const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
+    const auto start = clock();
+    if (utils::AllocateAndCopyToDevice(device_A, device_b, device_x0, device_x, A, b, x0, x, N) != 0)
+    {
+        return;  // Error already handled in AllocateAndCopyToDevice
+    }
 
-//     const auto grid_dim = dim3(num_blocks_x, num_blocks_y, 1);
-//     const auto block_dim = dim3(kBlockSize, kBlockSize);
+    // Launch kernel
+    const auto num_blocks = (N + kBlockSize - 1) / kBlockSize;
 
-//     printf("Launching kernel with configuration: (%d, %d) x (%d, %d) threads per block\n",
-//            num_blocks_x,
-//            num_blocks_y,
-//            kBlockSize,
-//            kBlockSize);
+    const auto grid_dim = dim3(num_blocks, 1, 1);
+    const auto block_dim = dim3(kBlockSize);
 
-//     MatMultWithSharedMemoryGPU<<<grid_dim, block_dim>>>(d_A, d_B, d_C, M, N, P);
+    printf("Launching kernel with configuration: (%d, 1, 1) x (%d, 1, 1) threads per block\n", num_blocks, kBlockSize);
 
-//     CUDA_CHECK(cudaGetLastError());
-//     CUDA_CHECK(cudaDeviceSynchronize());
+    double residual = 0.0;
+    for (std::int32_t i = 0; i < kMaxIterations; ++i)
+    {
+        JacobiSolveGPU<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, N);
 
-//     // Copy results back
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaDeviceSynchronize());
 
-//     if (cudaMemcpy(C, d_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost) != cudaSuccess)
-//     {
-//         std::cerr << "Failed to copy data from device to host\n";
-//         cudaFree(d_A);
-//         cudaFree(d_B);
-//         cudaFree(d_C);
-//         return;
-//     }
-//     const auto end = clock();
-//     const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-//     std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
+        // Copy results back
+        if (cudaMemcpy(x, device_x, sizeof(double) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
+        {
+            std::cerr << "Failed to copy data from device to host\n";
+            cudaFree(device_A);
+            cudaFree(device_b);
+            cudaFree(device_x0);
+            cudaFree(device_x);
+            return;
+        }
 
-//     cudaFree(d_A);
-//     cudaFree(d_B);
-//     cudaFree(d_C);
-// }
+        // Check for convergence
+        residual = utils::L2Norm(x, x0, N);
+        if (residual < kTolerance)
+        {
+            std::cout << "Converged after " << i + 1 << " iterations with residual: " << residual << "\n";
+            break;
+        }
+        else
+        {
+            std::cout << "Iteration: " << i + 1 << " | Residual: " << residual << "\n";
+        }
+
+        // Copy previous result to x0
+        if (cudaMemcpy(device_x0, device_x, sizeof(double) * N, cudaMemcpyDeviceToDevice) != cudaSuccess)
+        {
+            std::cerr << "Failed to copy data from device to device\n";
+            cudaFree(device_A);
+            cudaFree(device_b);
+            cudaFree(device_x0);
+            cudaFree(device_x);
+            return;
+        }
+    }
+
+    const auto end = clock();
+    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
+
+    cudaFree(device_A);
+    cudaFree(device_b);
+    cudaFree(device_x0);
+    cudaFree(device_x);
+}
