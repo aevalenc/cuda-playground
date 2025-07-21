@@ -19,16 +19,6 @@ namespace
 const double kTolerance = 1e-5;
 const std::int32_t kMaxIterations = 1000;
 
-double residual(const std::int32_t* x, const std::int32_t* xn, const std::int32_t N)
-{
-    double res = 0.0;
-    for (std::int32_t i = 0; i < N; ++i)
-    {
-        res += (x[i] - xn[i]) * (x[i] - xn[i]);
-    }
-    return sqrt(res);
-}
-
 }  // namespace
 
 double LaunchCPU(const std::int32_t N)
@@ -54,17 +44,14 @@ double LaunchCPU(const std::int32_t N)
     }
 
     const auto host_xn = utils::InitializeTestMatrix(N, 1);
-    std::int32_t* host_x = new std::int32_t[N];
-
-    utils::PrintMatrix(host_A, N, N);
-    utils::PrintMatrix(host_b, N, 1);
+    double* host_x = new double[N];
 
     std::int32_t iteration{0};
+    auto residual = utils::L2Norm(host_xn, host_x, N);
     const auto start = clock();
-    while (residual(host_xn, host_x, N) > kTolerance)
+    while (residual > kTolerance)
     {
         ++iteration;
-        std::cout << "Iteration: " << iteration << "\n";
 
         // Copy current x to xn
         std::copy(host_x, host_x + N, host_xn);
@@ -90,6 +77,11 @@ double LaunchCPU(const std::int32_t N)
         {
             std::cout << "Maximum iterations reached: " << kMaxIterations << "\n";
             break;
+        }
+        else
+        {
+            residual = utils::L2Norm(host_x, host_xn, N);
+            std::cout << "Iteration: " << iteration << "| Residual: " << residual << "\n";
         }
     }
 

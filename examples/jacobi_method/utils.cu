@@ -9,7 +9,7 @@
 namespace utils
 {
 
-void PrintVector(const std::int32_t* A, const std::int32_t N)
+void PrintVector(const double* A, const std::int32_t N)
 {
     std::cout << "[" << A[0];
     for (std::int32_t i = 1; i < N; ++i)
@@ -19,7 +19,7 @@ void PrintVector(const std::int32_t* A, const std::int32_t N)
     std::cout << "]\n";
 }
 
-void PrintArray(const std::int32_t* A, const std::int32_t N)
+void PrintArray(const double* A, const std::int32_t N)
 {
     std::cout << "[" << A[0];
     for (std::int32_t i = 1; i < N; ++i)
@@ -29,7 +29,7 @@ void PrintArray(const std::int32_t* A, const std::int32_t N)
     std::cout << "]\n";
 }
 
-void PrintMatrix(const std::int32_t* A, const std::int32_t M, const std::int32_t N)
+void PrintMatrix(const double* A, const std::int32_t M, const std::int32_t N)
 {
     std::cout << "[";
     for (std::int32_t i = 0; i < M; ++i)
@@ -51,9 +51,9 @@ void PrintMatrix(const std::int32_t* A, const std::int32_t M, const std::int32_t
     std::cout << "]]\n";
 }
 
-std::int32_t* InitializeTestMatrix(const std::int32_t M, const std::int32_t N)
+double* InitializeTestMatrix(const std::int32_t M, const std::int32_t N)
 {
-    std::int32_t* host_A = new std::int32_t[M * N];
+    double* host_A = new double[M * N];
 
     for (std::int32_t i = 0; i < M; ++i)
     {
@@ -65,9 +65,9 @@ std::int32_t* InitializeTestMatrix(const std::int32_t M, const std::int32_t N)
     return host_A;
 }
 
-std::int32_t* InitializeLaplaceMatrix(const std::int32_t N)
+double* InitializeLaplaceMatrix(const std::int32_t N)
 {
-    std::int32_t* host_A = new std::int32_t[N * N];
+    double* host_A = new double[N * N];
 
     for (std::int32_t i = 0; i < N; ++i)
     {
@@ -90,49 +90,83 @@ std::int32_t* InitializeLaplaceMatrix(const std::int32_t N)
     return host_A;
 }
 
-std::int32_t AllocateAndCopyToDevice(std::int32_t*& device_A,
-                                     std::int32_t*& device_B,
-                                     std::int32_t*& device_C,
-                                     const std::int32_t* host_A,
-                                     const std::int32_t* host_B,
-                                     const std::int32_t M,
-                                     const std::int32_t N,
-                                     const std::int32_t P)
+double L2Norm(const double* x, const double* xn, const std::int32_t N)
 {
-    if (cudaMalloc((void**)&device_A, sizeof(std::int32_t) * M * N) != cudaSuccess)
+    double res = 0.0;
+    for (std::int32_t i = 0; i < N; ++i)
     {
-        std::cerr << "Failed to allocate device memory for device matrix A\n";
+        res += (x[i] - xn[i]) * (x[i] - xn[i]);
+    }
+    return sqrt(res);
+}
+
+std::int32_t AllocateAndCopyToDevice(double*& device_A,
+                                     double*& device_b,
+                                     double*& device_x0,
+                                     double*& device_x,
+                                     const double* host_A,
+                                     const double* host_b,
+                                     double* host_x0,
+                                     double* host_x,
+                                     const std::int32_t N)
+{
+    // Allocate device memory
+    if (cudaMalloc((void**)&device_A, sizeof(double) * N * N) != cudaSuccess)
+    {
+        std::cerr << "Failed to allocate device memory for matrix A\n";
         return -1;
     }
-    if (cudaMalloc((void**)&device_B, sizeof(std::int32_t) * N * P) != cudaSuccess)
+    if (cudaMalloc((void**)&device_b, sizeof(double) * N) != cudaSuccess)
     {
-        std::cerr << "Failed to allocate device memory for device matrix B;\n";
+        std::cerr << "Failed to allocate device memory for matrix b;\n";
         cudaFree(device_A);
         return -1;
     }
-    if (cudaMalloc((void**)&device_C, sizeof(std::int32_t) * M * P) != cudaSuccess)
+    if (cudaMalloc((void**)&device_x0, sizeof(double) * N) != cudaSuccess)
     {
-        std::cerr << "Failed to allocate device memory for device matrix C;\n";
+        std::cerr << "Failed to allocate device memory for initial guess x0;\n";
         cudaFree(device_A);
-        cudaFree(device_B);
+        cudaFree(device_b);
+        return -1;
+    }
+    if (cudaMalloc((void**)&device_x, sizeof(double) * N) != cudaSuccess)
+    {
+        std::cerr << "Failed to allocate device memory for solution x;\n";
+        cudaFree(device_A);
+        cudaFree(device_b);
+        cudaFree(device_x0);
         return -1;
     }
 
-    if (cudaMemcpy(device_A, host_A, sizeof(std::int32_t) * M * N, cudaMemcpyHostToDevice) != cudaSuccess)
+    // Copy data from host to device
+    if (cudaMemcpy(device_A, host_A, sizeof(double) * N * N, cudaMemcpyHostToDevice) != cudaSuccess)
     {
         std::cerr << "Failed to copy data from host to device for Matrix A\n";
         cudaFree(device_A);
-        cudaFree(device_B);
+        cudaFree(device_b);
+        cudaFree(device_x0);
+        cudaFree(device_x);
         return -1;
     }
-
-    if (cudaMemcpy(device_B, host_B, sizeof(std::int32_t) * N * P, cudaMemcpyHostToDevice) != cudaSuccess)
+    if (cudaMemcpy(device_b, host_b, sizeof(double) * N, cudaMemcpyHostToDevice) != cudaSuccess)
     {
         std::cerr << "Failed to copy data from host to device for Matrix B\n";
         cudaFree(device_A);
-        cudaFree(device_B);
+        cudaFree(device_b);
+        cudaFree(device_x0);
+        cudaFree(device_x);
         return -1;
     }
+    if (cudaMemcpy(device_x0, host_x0, sizeof(double) * N, cudaMemcpyHostToDevice) != cudaSuccess)
+    {
+        std::cerr << "Failed to copy data from host to device for Matrix B\n";
+        cudaFree(device_A);
+        cudaFree(device_b);
+        cudaFree(device_x0);
+        cudaFree(device_x);
+        return -1;
+    }
+
     return 0;
 }
 
