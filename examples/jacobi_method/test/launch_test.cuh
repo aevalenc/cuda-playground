@@ -18,5 +18,7 @@
 
 constexpr std::int32_t kMaxIterations = 1000;
 constexpr double kTolerance = 1e-5;
+constexpr double kTestTolerance = 1e-3;
 
+void LaunchJacobiSolveCPU(const double* A, const double* b, double* x0, double* x, const std::int32_t N);
 void LaunchJacobiSolveGPU(const double* A, const double* b, double* x0, double* x, const std::int32_t N);

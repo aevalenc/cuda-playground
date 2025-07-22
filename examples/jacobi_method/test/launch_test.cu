@@ -10,8 +10,56 @@
 #include <gtest/gtest.h>
 #include <time.h>
 
-void LaunchJacobiSolveGPU(const double* A, const double* b, double* x0, double* x, const std::int32_t N)
+void LaunchJacobiSolveCPU(const double* A, const double* b, double* x0, double* x, const std::int32_t N)
+{
 
+    std::int32_t iteration{0};
+    auto residual = utils::L2Norm(x0, x, N);
+    const auto start = clock();
+    while (residual > kTolerance)
+    {
+        ++iteration;
+
+        // Copy current x to x0
+        std::copy(x, x + N, x0);
+
+        // Jacobi iteration
+        for (std::int32_t i = 0; i < N; ++i)
+        {
+            // Initialize sum
+            double sum = 0;
+            for (std::int32_t k = 0; k < N; ++k)
+            {
+                if (k != i)
+                {
+                    sum += A[k + N * i] * x0[k];
+                }
+            }
+
+            // Calculate next iteration
+            x[i] = (b[i] - sum) / A[i + N * i];
+        }
+
+        if (iteration == kMaxIterations)
+        {
+            std::cout << "Maximum iterations reached: " << kMaxIterations << "\n";
+            break;
+        }
+        else
+        {
+            residual = utils::L2Norm(x, x0, N);
+            std::cout << "Iteration: " << iteration << "| Residual: " << residual << "\n";
+        }
+    }
+
+    const auto end = clock();
+    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed CPU time: " << elapsed_time << " seconds\n";
+
+    utils::PrintVector(x, N);
+}
+
+void LaunchJacobiSolveGPU(const double* A, const double* b, double* x0, double* x, const std::int32_t N)
 {
     // Allocate device memory
     double* device_A;
@@ -44,7 +92,17 @@ void LaunchJacobiSolveGPU(const double* A, const double* b, double* x0, double* 
         // Copy results back
         if (cudaMemcpy(x, device_x, sizeof(double) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
         {
-            std::cerr << "Failed to copy data from device to host\n";
+            std::cerr << "Failed to copy x data from device to host\n";
+            cudaFree(device_A);
+            cudaFree(device_b);
+            cudaFree(device_x0);
+            cudaFree(device_x);
+            return;
+        }
+
+        if (cudaMemcpy(x0, device_x0, sizeof(double) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
+        {
+            std::cerr << "Failed to copy x0 data from device to host\n";
             cudaFree(device_A);
             cudaFree(device_b);
             cudaFree(device_x0);
@@ -53,7 +111,7 @@ void LaunchJacobiSolveGPU(const double* A, const double* b, double* x0, double* 
         }
 
         // Check for convergence
-        residual = utils::L2Norm(x, x0, N);
+        residual = utils::L2Norm(x0, x, N);
         if (residual < kTolerance)
         {
             std::cout << "Converged after " << i + 1 << " iterations with residual: " << residual << "\n";
@@ -79,6 +137,8 @@ void LaunchJacobiSolveGPU(const double* A, const double* b, double* x0, double* 
     const auto end = clock();
     const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
     std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
+
+    utils::PrintVector(x, N);
 
     cudaFree(device_A);
     cudaFree(device_b);

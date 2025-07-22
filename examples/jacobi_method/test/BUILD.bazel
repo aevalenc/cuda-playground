@@ -16,7 +16,6 @@ cc_test(
     srcs = ["test.cc"],
     deps = [
         ":launch_main",
-        "//examples/jacobi_method:jacobi_lib",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

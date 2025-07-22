@@ -1,62 +1,76 @@
 /*
- * Closest Neighbor Search using Shared Memory in CUDA Test
+ * Jacobi Solver in CUDA Tests
+ *
+ * Author: Alejandro Valencia
+ * Date: July 22, 2025
  */
 
-#include "examples/jacobi_method/launch.h"
 #include "examples/jacobi_method/test/launch_test.cuh"
 #include "examples/jacobi_method/utils.h"
 #include <cstdint>
 #include <gtest/gtest.h>
-// #include <vector>
 
-TEST(JacobiSolverCPU, GivenBasicLaplaceMatrixExpectCorrectOutput)
+class JacobiTestFixture : public ::testing::Test
 {
-    const std::int32_t N = 5;
-
-    LaunchCPU(N);
-
-    // Check results
-    // EXPECT_EQ(h_C[0], 4);
-    // EXPECT_EQ(h_C[1], 8);
-    // EXPECT_EQ(h_C[2], 12);
-    EXPECT_TRUE(true);  // Placeholder for actual checks
-}
-
-TEST(JacobiSolverGPU, GivenBasicLaplaceMatrixExpectCorrectOutput)
-{
-    const std::int32_t N = 5;
-    double* host_A = utils::InitializeLaplaceMatrix(N);
-    double* host_x0 = utils::InitializeTestMatrix(N, 1);
-    double* host_b = new double[N];
-    for (std::int32_t i = 0; i < N; ++i)
+  public:
+    void SetUp() override
     {
-        // Boundary conditions
-        if (i == 0)
+        host_A_ = utils::InitializeLaplaceMatrix(kMatrixSize);
+        host_b_ = new double[kMatrixSize];
+
+        for (std::int32_t i = 0; i < kMatrixSize; ++i)
         {
-            host_b[i] = 200.0;
-        }
-        else if (i == N - 1)
-        {
-            host_b[i] = 400.0;
-        }
-        else
-        {
-            host_b[i] = 0.0;
+            if (i == 0)
+            {
+                host_b_[i] = 200;
+            }
+            else if (i == kMatrixSize - 1)
+            {
+                host_b_[i] = 400;
+            }
+            else
+            {
+                host_b_[i] = 0;
+            }
         }
     }
+    void TearDown() override
+    {
+        delete[] host_A_;
+        delete[] host_b_;
+    }
 
-    double* host_x = new double[N];
+  public:
+    const double kTestTolerance = 1e-3;
+    static constexpr std::int32_t kMatrixSize = 5;
+    std::array<double, kMatrixSize> host_x0_ = {1.0, 1.0, 1.0, 1.0, 1.0};
+    std::array<double, kMatrixSize> host_x_ = {0.0, 0.0, 0.0, 0.0, 0.0};
+    double* host_A_ = nullptr;
+    double* host_b_ = nullptr;
+};
 
-    utils::PrintMatrix(host_A, N, N);
-    utils::PrintVector(host_b, N);
+TEST_F(JacobiTestFixture, GivenBasicLaplaceMatrixCallCPUColverExpectCorrectOutput)
+{
+    // Call
+    LaunchJacobiSolveCPU(host_A_, host_b_, host_x0_.data(), host_x_.data(), kMatrixSize);
 
-    LaunchJacobiSolveGPU(host_A, host_b, host_x0, host_x, N);
+    // Expect
+    EXPECT_NEAR(host_x_[0], 233.333, kTestTolerance);
+    EXPECT_NEAR(host_x_[1], 266.666, kTestTolerance);
+    EXPECT_NEAR(host_x_[2], 300.0, kTestTolerance);
+    EXPECT_NEAR(host_x_[3], 333.333, kTestTolerance);
+    EXPECT_NEAR(host_x_[4], 366.666, kTestTolerance);
+}
 
-    utils::PrintVector(host_x, N);
+TEST_F(JacobiTestFixture, GivenBasicLaplaceMatrixCallGPUSolverExpectCorrectOutput)
+{
+    // Call
+    LaunchJacobiSolveGPU(host_A_, host_b_, host_x0_.data(), host_x_.data(), kMatrixSize);
 
-    // Check results
-    // EXPECT_EQ(h_C[0], 4);
-    // EXPECT_EQ(h_C[1], 8);
-    // EXPECT_EQ(h_C[2], 12);
-    EXPECT_TRUE(true);  // Placeholder for actual checks
+    // Expect
+    EXPECT_NEAR(host_x_[0], 233.333, kTestTolerance);
+    EXPECT_NEAR(host_x_[1], 266.666, kTestTolerance);
+    EXPECT_NEAR(host_x_[2], 300.0, kTestTolerance);
+    EXPECT_NEAR(host_x_[3], 333.333, kTestTolerance);
+    EXPECT_NEAR(host_x_[4], 366.666, kTestTolerance);
 }
