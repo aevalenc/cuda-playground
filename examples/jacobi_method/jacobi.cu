@@ -1,5 +1,5 @@
 /*
- * add_numbers.cu
+ * Jacobi Solver in CUDA
  *
  * Copyright (C) 2025 Name Alejandro Valencia
  */
@@ -11,6 +11,11 @@ __global__ void JacobiSolveGPU(const double* A, const double* b, double* x0, dou
 {
     // Get Global thread index
     std::int32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= N)
+    {
+        return;  // Out of bounds check
+    }
 
     // Calculate sum
     double sum = 0;

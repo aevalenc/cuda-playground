@@ -19,7 +19,11 @@
         }                                                                                                    \
     } while (0)
 
+const double kTolerance = 1e-3;
+const std::int32_t kMaxIterations = 1;
+
 double LaunchCPU(const std::int32_t N);
+double LaunchJacobiSolveGPU(const std::int32_t N);
 // double LaunchGPUWithSharedMemory(const std::int32_t N);
 
 #endif  // EXAMPLES_JACOBI_METHOD_LAUNCH_H
