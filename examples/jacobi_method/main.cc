@@ -8,7 +8,7 @@
 int main()
 {
     // Set the number of points to be processed
-    const std::int32_t N = 20001;
+    const std::int32_t N = 201;
     const std::int32_t max_runs = 3;
 
     auto min_time_cpu = 1000.0;
@@ -36,16 +36,16 @@ int main()
     }
 
     auto min_gpu_shared_memory_time = 1000.0;
-    // for (std::int32_t run = 0; run < max_runs; ++run)
-    // {
-    //     std::cout << "Shared Memory Run " << run + 1 << " of " << max_runs << "\n";
-    //     const auto gpu_shared_memory_time = LaunchGPUWithSharedMemory(M, N, P);
+    for (std::int32_t run = 0; run < max_runs; ++run)
+    {
+        std::cout << "Shared Memory Run " << run + 1 << " of " << max_runs << "\n";
+        const auto gpu_shared_memory_time = LaunchJacobiSolveWithTilingGPU(N);
 
-    //     if (gpu_shared_memory_time < min_gpu_shared_memory_time)
-    //     {
-    //         min_gpu_shared_memory_time = gpu_shared_memory_time;
-    //     }
-    // }
+        if (gpu_shared_memory_time < min_gpu_shared_memory_time)
+        {
+            min_gpu_shared_memory_time = gpu_shared_memory_time;
+        }
+    }
 
     std::cout << "\nMinimum CPU time: " << min_time_cpu << " s" << "\n";
     std::cout << "Minimum GPU time: " << min_time_gpu << " s" << "\n";

@@ -191,64 +191,119 @@ double LaunchJacobiSolveGPU(const std::int32_t N)
     return elapsed_time;
 }
 
-// double LaunchGPUWithSharedMemory(const std::int32_t N)
-// {
+double LaunchJacobiSolveWithTilingGPU(const std::int32_t N)
+{
+    double* host_A = utils::InitializeLaplaceMatrix(N);
+    std::vector<double> host_x0(N, 1.0);
+    std::vector<double> host_b(N);
+    std::vector<double> host_x(N, 0.0);
 
-//     // Initialize the arrays
-//     const auto host_A = utils::InitializeLaplaceMatrix(N);
-//     const auto host_B = utils::InitializeTestMatrix(N, 1);
-//     const auto host_x0 = utils::InitializeTestMatrix(N, 1);
-//     std::int32_t* host_x = new std::int32_t[N];
+    // Initialize b with boundary conditions
+    for (std::int32_t i = 0; i < N; ++i)
+    {
+        // Boundary conditions
+        if (i == 0)
+        {
+            host_b.at(i) = 200.0;
+        }
+        else if (i == N - 1)
+        {
+            host_b.at(i) = 400.0;
+        }
+        else
+        {
+            host_b.at(i) = 0.0;
+        }
+    }
 
-//     // Allocate device memory
-//     std::int32_t* device_A;
-//     std::int32_t* device_B;
-//     std::int32_t* device_C;
+    // Allocate device memory
+    double* device_A;
+    double* device_b;
+    double* device_x0;
+    double* device_x;
 
-//     const auto start = clock();
-//     if (utils::AllocateAndCopyToDevice(device_A, device_B, device_C, host_A, host_B, M, N, P) != 0)
-//     {
-//         return -1;
-//     }
+    const auto start = clock();
+    if (utils::AllocateAndCopyToDevice(
+            device_A, device_b, device_x0, device_x, host_A, host_b.data(), host_x0.data(), host_x.data(), N) != 0)
+    {
+        return -1;
+    }
 
-//     const auto num_blocks_x = (P + kBlockSize - 1) / kBlockSize;
-//     const auto num_blocks_y = (M + kBlockSize - 1) / kBlockSize;
+    // Launch kernel
+    const auto num_blocks = (N + kBlockSize - 1) / kBlockSize;
 
-//     const auto grid_dim = dim3(num_blocks_x, num_blocks_y, 1);
-//     const auto block_dim = dim3(kBlockSize, kBlockSize);
+    const auto grid_dim = dim3(num_blocks, num_blocks, 1);
+    const auto block_dim = dim3(kBlockSize, kBlockSize, 1);
 
-//     std::cout << "Launching kernel with configuration: (" << num_blocks_x << ", " << num_blocks_y << ") x ("
-//               << kBlockSize << ", " << kBlockSize << ") \n";
-//     MatMultWithSharedMemoryGPU<<<grid_dim, block_dim>>>(device_A, device_B, device_C, M, N, P);
+    printf("Launching kernel with configuration: (%d, %d, 1) x (%d, %d, 1) threads per block\n",
+           num_blocks,
+           num_blocks,
+           kBlockSize,
+           kBlockSize);
 
-//     CUDA_CHECK(cudaGetLastError());
-//     CUDA_CHECK(cudaDeviceSynchronize());
+    double residual = 0.0;
+    for (std::int32_t i = 0; i < kMaxIterations; ++i)
+    {
+        JacobiSolveWithTilingGPU<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, N);
 
-//     if (cudaMemcpy(host_C, device_C, sizeof(std::int32_t) * M * P, cudaMemcpyDeviceToHost) != cudaSuccess)
-//     {
-//         std::cerr << "Failed to copy data from device to host\n";
-//         delete[] host_A;
-//         delete[] host_B;
-//         delete[] host_C;
-//         cudaFree(device_A);
-//         cudaFree(device_B);
-//         cudaFree(device_C);
-//         return -1;
-//     }
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaDeviceSynchronize());
 
-//     const auto end = clock();
-//     const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-//     std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
+        // Copy results back
+        if (cudaMemcpy(host_x.data(), device_x, sizeof(double) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
+        {
+            std::cerr << "Failed to copy x data from device to host\n";
+            cudaFree(device_A);
+            cudaFree(device_b);
+            cudaFree(device_x0);
+            cudaFree(device_x);
+            return -1;
+        }
 
-//     delete[] host_A;
-//     delete[] host_B;
-//     delete[] host_C;
+        if (cudaMemcpy(host_x0.data(), device_x0, sizeof(double) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
+        {
+            std::cerr << "Failed to copy x0 data from device to host\n";
+            cudaFree(device_A);
+            cudaFree(device_b);
+            cudaFree(device_x0);
+            cudaFree(device_x);
+            return -1;
+        }
 
-//     cudaFree(device_A);
-//     cudaFree(device_B);
-//     cudaFree(device_C);
+        // Check for convergence
+        residual = utils::L2Norm(host_x0.data(), host_x.data(), N);
+        if (residual < kTolerance)
+        {
+            std::cout << "Converged after " << i + 1 << " iterations with residual: " << residual << "\n";
+            break;
+        }
 
-//     cudaDeviceReset();
+        // Copy previous result to x0
+        if (cudaMemcpy(device_x0, device_x, sizeof(double) * N, cudaMemcpyDeviceToDevice) != cudaSuccess)
+        {
+            std::cerr << "Failed to copy data from device to device\n";
+            cudaFree(device_A);
+            cudaFree(device_b);
+            cudaFree(device_x0);
+            cudaFree(device_x);
+            return -1;
+        }
 
-//     return elapsed_time;
-// }
+        if (i == kMaxIterations - 1)
+        {
+            std::cout << "Maximum iterations reached: " << kMaxIterations << "\n";
+        }
+    }
+
+    const auto end = clock();
+    const double elapsed_time = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Elapsed GPU time: " << elapsed_time << " seconds\n";
+
+    cudaFree(device_A);
+    cudaFree(device_b);
+    cudaFree(device_x0);
+    cudaFree(device_x);
+    cudaDeviceReset();
+
+    return elapsed_time;
+}
