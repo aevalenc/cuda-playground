@@ -16,7 +16,13 @@ void PrintMatrix(const double* A, const std::int32_t M, const std::int32_t N);
 
 double* InitializeTestMatrix(const std::int32_t M, const std::int32_t N);
 double* InitializeLaplaceMatrix(const std::int32_t N);
-double L2Norm(const double* x, const double* xn, const std::int32_t N);
+double L2Norm(const double* x, const std::int32_t N);
+void MatrixMultiply(const double* A,
+                    const double* B,
+                    double* C,
+                    const std::int32_t M,
+                    const std::int32_t N,
+                    const std::int32_t P);
 
 std::int32_t AllocateAndCopyToDevice(double*& device_A,
                                      double*& device_b,

@@ -2,13 +2,6 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_cuda//cuda:defs.bzl", "cuda_library")
 
 cuda_library(
-    name = "jacobi_utils",
-    srcs = ["utils.cu"],
-    hdrs = ["utils.h"],
-    visibility = ["//visibility:public"],
-)
-
-cuda_library(
     name = "jacobi_method_kernel",
     srcs = ["jacobi.cu"],
     hdrs = ["jacobi.h"],
@@ -16,30 +9,20 @@ cuda_library(
     #     "-v",
     #     "--maxrregcount=32",
     # ],
-    visibility = ["//visibility:public"],
 )
 
 cuda_library(
     name = "jacobi_lib",
     srcs = ["launch.cu"],
     hdrs = ["launch.h"],
-    visibility = ["//visibility:public"],
     deps = [
         ":jacobi_method_kernel",
-        ":jacobi_utils",
+        "//examples/jacobi_method:jacobi_utils",
     ],
 )
 
 cc_binary(
     name = "main",
-    srcs = ["main.cc"],
-    visibility = ["//visibility:public"],
+    srcs = ["main.cpp"],
     deps = [":jacobi_lib"],
-)
-
-cc_binary(
-    name = "cpu",
-    srcs = ["cpu/main.cpp"],
-    visibility = ["//visibility:public"],
-    deps = [":jacobi_utils"],
 )

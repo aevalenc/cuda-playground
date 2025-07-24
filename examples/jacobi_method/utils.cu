@@ -90,14 +90,36 @@ double* InitializeLaplaceMatrix(const std::int32_t N)
     return host_A;
 }
 
-double L2Norm(const double* x, const double* xn, const std::int32_t N)
+double L2Norm(const double* x, const std::int32_t N)
 {
     double res = 0.0;
     for (std::int32_t i = 0; i < N; ++i)
     {
-        res += (x[i] - xn[i]) * (x[i] - xn[i]);
+        res += x[i] * x[i];
     }
     return sqrt(res);
+}
+
+void MatrixMultiply(const double* A,
+                    const double* B,
+                    double* C,
+                    const std::int32_t M,
+                    const std::int32_t N,
+                    const std::int32_t P)
+{
+    double sum = 0.0;
+    for (std::int32_t i = 0; i < M; ++i)
+    {
+        for (std::int32_t j = 0; j < P; ++j)
+        {
+            sum = 0.0;
+            for (std::int32_t k = 0; k < N; ++k)
+            {
+                sum += A[k + N * i] * B[j + P * k];
+            }
+            C[j + P * i] = sum;
+        }
+    }
 }
 
 std::int32_t AllocateAndCopyToDevice(double*& device_A,
