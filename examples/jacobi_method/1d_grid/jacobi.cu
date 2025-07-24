@@ -30,3 +30,53 @@ __global__ void JacobiSolveGPU(const double* A, const double* b, double* x0, dou
     // Calculate next iteration
     x[idx] = (b[idx] - sum) / A[idx + N * idx];
 }
+
+__global__ void JacobiSolveWithSharedMemoryGPU(const double* A, const double* b, double* x0, double* x, std::int32_t N)
+{
+    // Calculate the global thread index
+    std::int32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    double final_sum = 0.0;
+    for (std::int32_t current_block = 0; current_block < (N + kBlockSize - 1) / kBlockSize; ++current_block)
+    {
+        double inner_sum = 0.0;
+
+        // Shared memory for A and x0
+        __shared__ double shared_x0[kBlockSize];
+
+        // Load A and B into shared memory
+        if (current_block * blockDim.x + threadIdx.x < N)
+        {
+            shared_x0[threadIdx.x] = x0[(current_block * kBlockSize + threadIdx.x)];
+        }
+        else
+        {
+            shared_x0[threadIdx.x] = 0;
+        }
+
+        __syncthreads();
+
+        // Perform the multiplication
+        if (idx < N)
+        {
+            // double sum = 0.0;
+            for (std::int32_t j = 0; j < kBlockSize; ++j)
+            {
+                std::int32_t current_index = current_block * kBlockSize + j;
+                if (idx != current_index && current_index < N)  // Avoid self-multiplication
+                {
+                    inner_sum += A[j * N + threadIdx.x] * shared_x0[j];
+                }
+            }
+            final_sum += inner_sum;
+        }
+
+        __syncthreads();
+    }
+
+    // Calculate next iteration
+    if (idx < N)
+    {
+        x[idx] = (b[idx] - final_sum) / A[idx + N * idx];
+    }
+}

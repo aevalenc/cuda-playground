@@ -26,3 +26,9 @@ cc_binary(
     srcs = ["main.cpp"],
     deps = [":jacobi_lib"],
 )
+
+cc_binary(
+    name = "jacobi_with_shared_memory",
+    srcs = ["jacobi_with_shared_memory.cpp"],
+    deps = [":jacobi_lib"],
+)
