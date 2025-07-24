@@ -11,6 +11,7 @@
 #include <iostream>
 #include <time.h>
 
+const std::int32_t N = 10001;
 const double kTolerance = 1e-3;
 const std::int32_t kMaxIterations = 1;
 
@@ -18,7 +19,6 @@ std::int32_t main()
 {
 
     // Initialize the arrays
-    const std::int32_t N = 10001;
     double* host_A = utils::InitializeLaplaceMatrix(N);
     std::array<double, N> host_x0;
     std::array<double, N> host_b;
