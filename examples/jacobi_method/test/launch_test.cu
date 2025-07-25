@@ -20,7 +20,12 @@ void LaunchJacobiSolveCPU(const double* A,
 {
 
     std::int32_t iteration{0};
-    auto residual = utils::L2Norm(x0, x, N);
+    std::vector<double> residuals(N, 0.0);
+
+    utils::MatrixMultiply(A, x0, residuals.data(), N, N, 1);
+    std::ignore = std::transform(residuals.begin(), residuals.end(), b, residuals.begin(), std::minus<double>());
+    auto residual = utils::L2Norm(residuals.data(), N);
+
     const auto start = clock();
     while (residual > tolerance)
     {
@@ -53,7 +58,10 @@ void LaunchJacobiSolveCPU(const double* A,
         }
         else
         {
-            residual = utils::L2Norm(x, x0, N);
+            utils::MatrixMultiply(A, x0, residuals.data(), N, N, 1);
+            std::ignore =
+                std::transform(residuals.begin(), residuals.end(), b, residuals.begin(), std::minus<double>());
+            residual = utils::L2Norm(residuals.data(), N);
             std::cout << "Iteration: " << iteration << "| Residual: " << residual << "\n";
         }
     }
@@ -93,6 +101,7 @@ void LaunchJacobiSolveGPU(const double* A,
 
     printf("Launching kernel with configuration: (%d, 1, 1) x (%d, 1, 1) threads per block\n", num_blocks, kBlockSize);
 
+    std::vector<double> residuals(N, 0.0);
     double residual = 0.0;
     for (std::int32_t i = 0; i < max_iterations; ++i)
     {
@@ -123,7 +132,9 @@ void LaunchJacobiSolveGPU(const double* A,
         }
 
         // Check for convergence
-        residual = utils::L2Norm(x0, x, N);
+        utils::MatrixMultiply(A, x0, residuals.data(), N, N, 1);
+        std::ignore = std::transform(residuals.begin(), residuals.end(), b, residuals.begin(), std::minus<double>());
+        residual = utils::L2Norm(residuals.data(), N);
         if (residual < tolerance)
         {
             std::cout << "Converged after " << i + 1 << " iterations with residual: " << residual << "\n";
@@ -195,6 +206,7 @@ void LaunchJacobiSolveWithTilingGPU(const double* A,
            kBlockSize,
            kBlockSize);
 
+    std::vector<double> residuals(N, 0.0);
     double residual = 0.0;
     for (std::int32_t i = 0; i < max_iterations; ++i)
     {
@@ -225,7 +237,10 @@ void LaunchJacobiSolveWithTilingGPU(const double* A,
         }
 
         // Check for convergence
-        residual = utils::L2Norm(x0, x, N);
+        utils::MatrixMultiply(A, x0, residuals.data(), N, N, 1);
+        std::ignore = std::transform(residuals.begin(), residuals.end(), b, residuals.begin(), std::minus<double>());
+        residual = utils::L2Norm(residuals.data(), N);
+
         if (residual < tolerance)
         {
             std::cout << "Converged after " << i + 1 << " iterations with residual: " << residual << "\n";

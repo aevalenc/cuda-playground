@@ -16,27 +16,27 @@
         }                                                                                                    \
     } while (0)
 
-constexpr std::int32_t kMaxIterations = 1000;
-constexpr double kTolerance = 1e-5;
+constexpr std::int32_t kTestMaxIterations = 1000;
+constexpr double kTestTolerance = 1e-5;
 
 void LaunchJacobiSolveCPU(const double* A,
                           const double* b,
                           double* x0,
                           double* x,
                           const std::int32_t N,
-                          const double tolerance = kTolerance,
-                          std::int32_t max_iterations = kMaxIterations);
+                          const double tolerance = kTestTolerance,
+                          std::int32_t max_iterations = kTestMaxIterations);
 void LaunchJacobiSolveGPU(const double* A,
                           const double* b,
                           double* x0,
                           double* x,
                           const std::int32_t N,
-                          const double tolerance = kTolerance,
-                          std::int32_t max_iterations = kMaxIterations);
+                          const double tolerance = kTestTolerance,
+                          std::int32_t max_iterations = kTestMaxIterations);
 void LaunchJacobiSolveWithTilingGPU(const double* A,
                                     const double* b,
                                     double* x0,
                                     double* x,
                                     const std::int32_t N,
-                                    const double tolerance = kTolerance,
-                                    std::int32_t max_iterations = kMaxIterations);
+                                    const double tolerance = kTestTolerance,
+                                    std::int32_t max_iterations = kTestMaxIterations);
