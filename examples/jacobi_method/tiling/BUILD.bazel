@@ -1,0 +1,28 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+cuda_library(
+    name = "jacobi_method_kernel",
+    srcs = ["jacobi.cu"],
+    hdrs = ["jacobi.h"],
+    # ptxasopts = [
+    #     "-v",
+    #     "--maxrregcount=32",
+    # ],
+)
+
+cuda_library(
+    name = "jacobi_lib",
+    srcs = ["launch.cu"],
+    hdrs = ["launch.h"],
+    deps = [
+        ":jacobi_method_kernel",
+        "//examples/jacobi_method:jacobi_utils",
+    ],
+)
+
+cc_binary(
+    name = "main",
+    srcs = ["main.cpp"],
+    deps = [":jacobi_lib"],
+)
