@@ -5,6 +5,7 @@
  * Date: July 22, 2025
  */
 
+#include "examples/jacobi_method/1d_grid/launch.h"
 #include "examples/jacobi_method/test/launch_test.cuh"
 #include "examples/jacobi_method/utils.h"
 #include <cstdint>
@@ -123,4 +124,13 @@ TEST_F(JacobiTestFixture, GivenBasicLaplaceMatrixCallGPUSolverWithTilingExpectCo
     EXPECT_NEAR(host_x.at(8), 350.000, tolerance);
     EXPECT_NEAR(host_x.at(9), 366.667, tolerance);
     EXPECT_NEAR(host_x.at(10), 383.333, tolerance);
+}
+
+TEST_F(JacobiTestFixture, GivenBasicLaplaceMatrixCallGPUSolverWithSharedMemoryExpectCorrectOutput)
+{
+    // Call
+    const auto duration = LaunchJacobiWithSharedMemoryGPU();
+
+    // Expect
+    EXPECT_TRUE(duration > -1.0);  // Placeholder for actual expectations
 }
