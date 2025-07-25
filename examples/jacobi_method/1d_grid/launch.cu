@@ -71,7 +71,7 @@ double LaunchGPU()
     double residual = 0.0;
     for (std::int32_t i = 0; i < kMaxIterations; ++i)
     {
-        JacobiSolveGPU<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, kNumberOfElements);
+        JacobiSolveGPU1D<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, kNumberOfElements);
 
         CUDA_CHECK(cudaGetLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
@@ -192,9 +192,12 @@ double LaunchJacobiWithSharedMemoryGPU()
 
     // Launch kernel
     const auto num_blocks = (kNumberOfElements + kBlockSize - 1) / kBlockSize;
-    const auto grid_dim = dim3(num_blocks, 1, 1);
-    const auto block_dim = dim3(kBlockSize);
-    printf("Launching kernel with configuration: (%d, 1, 1) x (%d, 1, 1) threads per block\n", num_blocks, kBlockSize);
+    const auto grid_dim = dim3(num_blocks, kNumberOfElements, 1);
+    const auto block_dim = dim3(kBlockSize, 1, 1);
+    printf("Launching kernel with configuration: (%d, %d, 1) x (%d, 1, 1) threads per block\n",
+           grid_dim.x,
+           grid_dim.y,
+           block_dim.x);
 
     double residual = 0.0;
     for (std::int32_t i = 0; i < kMaxIterations; ++i)

@@ -19,9 +19,9 @@
         }                                                                                                    \
     } while (0)
 
-const std::int32_t kNumberOfElements = 11;
+const std::int32_t kNumberOfElements = 10001;
 const double kTolerance = 1e-3;
-const std::int32_t kMaxIterations = 1e3;
+const std::int32_t kMaxIterations = 1;
 
 double LaunchGPU();
 double LaunchJacobiWithSharedMemoryGPU();

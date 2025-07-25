@@ -12,7 +12,7 @@
 __device__ constexpr std::int32_t kBlockSize = 256;
 
 extern "C" {
-__global__ void JacobiSolveGPU(const double* A, const double* b, double* x0, double* x, std::int32_t N);
+__global__ void JacobiSolveGPU1D(const double* A, const double* b, double* x0, double* x, std::int32_t N);
 __global__ void JacobiSolveWithSharedMemoryGPU(const double* A, const double* b, double* x0, double* x, std::int32_t N);
 }
 

@@ -7,7 +7,7 @@
 
 int main()
 {
-    std::int32_t number_of_runs = 1;
+    std::int32_t number_of_runs = 10;
     double min_elapsed_time = 1e9;
 
     for (std::int32_t i = 0; i < number_of_runs; ++i)
