@@ -9,31 +9,31 @@
 #include "examples/jacobi_method/tiling/launch.h"
 #include "examples/jacobi_method/utils.h"
 #include <algorithm>
-#include <array>
 #include <cuda_runtime.h>
 #include <iostream>
+#include <vector>
 #include <time.h>
 
-double LaunchGPU()
+double LaunchJacobiMethodWithTilingGPU(std::int32_t N)
 {
-    double* host_A = utils::InitializeLaplaceMatrix(kNumberOfElements);
-    std::array<double, kNumberOfElements> host_x0;
-    std::array<double, kNumberOfElements> host_b;
-    std::array<double, kNumberOfElements> host_x;
-    std::array<double, kNumberOfElements> residuals;
-    for (std::int32_t i = 0; i < kNumberOfElements; ++i)
+    double* host_A = utils::InitializeLaplaceMatrix(N);
+    std::vector<double> host_x0(N);
+    std::vector<double> host_b(N);
+    std::vector<double> host_x(N);
+    std::vector<double> residuals(N);
+    for (std::int32_t i = 0; i < N; ++i)
     {
         host_x0.at(i) = 1.0;
         host_x.at(i) = 0.0;
     }
 
-    for (std::int32_t i = 0; i < kNumberOfElements; ++i)
+    for (std::int32_t i = 0; i < N; ++i)
     {
         if (i == 0)
         {
             host_b.at(i) = 200.0;
         }
-        else if (i == kNumberOfElements - 1)
+        else if (i == N - 1)
         {
             host_b.at(i) = 400.0;
         }
@@ -50,40 +50,32 @@ double LaunchGPU()
     double* device_x;
 
     const auto start = clock();
-    if (utils::AllocateAndCopyToDevice(device_A,
-                                       device_b,
-                                       device_x0,
-                                       device_x,
-                                       host_A,
-                                       host_b.data(),
-                                       host_x0.data(),
-                                       host_x.data(),
-                                       kNumberOfElements) != 0)
+    if (utils::AllocateAndCopyToDevice(
+            device_A, device_b, device_x0, device_x, host_A, host_b.data(), host_x0.data(), host_x.data(), N) != 0)
     {
         return -1;
     }
 
     // Launch kernel
-    const auto num_blocks = (kNumberOfElements + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks = (N + kTiledBlockSize - 1) / kTiledBlockSize;
     const auto grid_dim = dim3(num_blocks, num_blocks, 1);
-    const auto block_dim = dim3(kBlockSize, kBlockSize, 1);
+    const auto block_dim = dim3(kTiledBlockSize, kTiledBlockSize, 1);
     printf("Launching kernel with configuration: (%d, %d, 1) x (%d, %d, 1) threads per block\n",
            num_blocks,
            num_blocks,
-           kBlockSize,
-           kBlockSize);
+           kTiledBlockSize,
+           kTiledBlockSize);
 
     double residual = 0.0;
     for (std::int32_t i = 0; i < kMaxIterations; ++i)
     {
-        JacobiSolveWithTilingGPU<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, kNumberOfElements);
+        JacobiSolveWithTilingGPU<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, N);
 
         CUDA_CHECK(cudaGetLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
 
         // Copy results back
-        if (cudaMemcpy(host_x.data(), device_x, sizeof(double) * kNumberOfElements, cudaMemcpyDeviceToHost) !=
-            cudaSuccess)
+        if (cudaMemcpy(host_x.data(), device_x, sizeof(double) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
         {
             std::cerr << "Failed to copy x data from device to host\n";
             cudaFree(device_A);
@@ -93,8 +85,7 @@ double LaunchGPU()
             return -1;
         }
 
-        if (cudaMemcpy(host_x0.data(), device_x0, sizeof(double) * kNumberOfElements, cudaMemcpyDeviceToHost) !=
-            cudaSuccess)
+        if (cudaMemcpy(host_x0.data(), device_x0, sizeof(double) * N, cudaMemcpyDeviceToHost) != cudaSuccess)
         {
             std::cerr << "Failed to copy x0 data from device to host\n";
             cudaFree(device_A);
@@ -105,10 +96,10 @@ double LaunchGPU()
         }
 
         // Check for convergence
-        utils::MatrixMultiply(host_A, host_x0.data(), residuals.data(), kNumberOfElements, kNumberOfElements, 1);
+        utils::MatrixMultiply(host_A, host_x0.data(), residuals.data(), N, N, 1);
         std::ignore =
             std::transform(residuals.begin(), residuals.end(), host_b.begin(), residuals.begin(), std::minus<double>());
-        residual = utils::L2Norm(residuals.data(), kNumberOfElements);
+        residual = utils::L2Norm(residuals.data(), N);
 
         if (residual < kTolerance)
         {
@@ -123,8 +114,7 @@ double LaunchGPU()
         }
 
         // Copy previous result to x0
-        if (cudaMemcpy(device_x0, device_x, sizeof(double) * kNumberOfElements, cudaMemcpyDeviceToDevice) !=
-            cudaSuccess)
+        if (cudaMemcpy(device_x0, device_x, sizeof(double) * N, cudaMemcpyDeviceToDevice) != cudaSuccess)
         {
             std::cerr << "Failed to copy data from device to device\n";
             cudaFree(device_A);

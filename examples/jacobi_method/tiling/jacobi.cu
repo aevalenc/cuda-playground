@@ -14,13 +14,13 @@ __global__ void JacobiSolveWithTilingGPU(const double* A, const double* b, doubl
     std::int32_t column = blockIdx.x * blockDim.x + threadIdx.x;
 
     double final_sum = 0.0;
-    for (std::int32_t current_tile = 0; current_tile < (N + kBlockSize - 1) / kBlockSize; ++current_tile)
+    for (std::int32_t current_tile = 0; current_tile < (N + kTiledBlockSize - 1) / kTiledBlockSize; ++current_tile)
     {
         double inner_sum = 0.0;
 
         // Shared memory for A and x0
-        __shared__ double shared_A[kBlockSize][kBlockSize];
-        __shared__ double shared_x0[kBlockSize];
+        __shared__ double shared_A[kTiledBlockSize][kTiledBlockSize];
+        __shared__ double shared_x0[kTiledBlockSize];
 
         // Load A and B into shared memory
         if (row < N && (current_tile * blockDim.x + threadIdx.x < N))
@@ -32,7 +32,7 @@ __global__ void JacobiSolveWithTilingGPU(const double* A, const double* b, doubl
             shared_A[threadIdx.y][threadIdx.x] = 0;
         }
 
-        if (column < kBlockSize && (current_tile * blockDim.y + threadIdx.y < N))
+        if (column < kTiledBlockSize && (current_tile * blockDim.y + threadIdx.y < N))
         {
             shared_x0[threadIdx.y] = x0[(current_tile * blockDim.y + threadIdx.y)];
         }
@@ -47,9 +47,9 @@ __global__ void JacobiSolveWithTilingGPU(const double* A, const double* b, doubl
         if (row < N && column < 1)
         {
             // double sum = 0.0;
-            for (std::int32_t j = 0; j < kBlockSize; ++j)
+            for (std::int32_t j = 0; j < kTiledBlockSize; ++j)
             {
-                std::int32_t current_index = current_tile * kBlockSize + j;
+                std::int32_t current_index = current_tile * kTiledBlockSize + j;
                 if (row != current_index && current_index < N)  // Avoid self-multiplication
                 {
                     inner_sum += shared_A[threadIdx.y][j] * shared_x0[j];

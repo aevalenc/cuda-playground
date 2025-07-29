@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-__device__ constexpr std::int32_t kBlockSize = 256;
+__device__ constexpr std::int32_t kSingleBlockSize = 32;
 
 extern "C" {
 __global__ void JacobiSolveGPU1D(const double* A, const double* b, double* x0, double* x, std::int32_t N);

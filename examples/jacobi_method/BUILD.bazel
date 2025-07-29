@@ -8,38 +8,28 @@ cuda_library(
     visibility = ["//visibility:public"],
 )
 
-cuda_library(
-    name = "jacobi_method_kernel",
-    srcs = ["jacobi.cu"],
-    hdrs = ["jacobi.h"],
-    # ptxasopts = [
-    #     "-v",
-    #     "--maxrregcount=32",
-    # ],
+cc_library(
+    name = "cpu_lib",
+    srcs = ["cpu/launch.cpp"],
+    hdrs = ["cpu/launch.h"],
     visibility = ["//visibility:public"],
-)
-
-cuda_library(
-    name = "jacobi_lib",
-    srcs = ["launch.cu"],
-    hdrs = ["launch.h"],
-    visibility = ["//visibility:public"],
-    deps = [
-        ":jacobi_method_kernel",
-        ":jacobi_utils",
-    ],
-)
-
-cc_binary(
-    name = "main",
-    srcs = ["main.cc"],
-    visibility = ["//visibility:public"],
-    deps = [":jacobi_lib"],
+    deps = [":jacobi_utils"],
 )
 
 cc_binary(
     name = "cpu",
     srcs = ["cpu/main.cpp"],
     visibility = ["//visibility:public"],
-    deps = [":jacobi_utils"],
+    deps = [":cpu_lib"],
+)
+
+cc_binary(
+    name = "main",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":cpu_lib",
+        "//examples/jacobi_method/1d_grid:jacobi_lib",
+        "//examples/jacobi_method/tiling:jacobi_lib",
+    ],
 )

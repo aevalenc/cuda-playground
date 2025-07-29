@@ -38,16 +38,16 @@ __global__ void JacobiSolveWithSharedMemoryGPU(const double* A, const double* b,
     std::int32_t column = blockIdx.x * blockDim.x + threadIdx.x;
 
     double final_sum = 0.0;
-    for (std::int32_t current_block = 0; current_block < (N + kBlockSize - 1) / kBlockSize; ++current_block)
+    for (std::int32_t current_block = 0; current_block < (N + kSingleBlockSize - 1) / kSingleBlockSize; ++current_block)
     {
         double inner_sum = 0.0;
 
         // Shared memory for A and x0
-        __shared__ double shared_A[kBlockSize];
-        __shared__ double shared_x0[kBlockSize];
+        __shared__ double shared_A[kSingleBlockSize];
+        __shared__ double shared_x0[kSingleBlockSize];
 
         // Load A and B into shared memory
-        if (row < N && (current_block * blockDim.x + threadIdx.x < N) && column < kBlockSize)
+        if (row < N && (current_block * blockDim.x + threadIdx.x < N) && column < kSingleBlockSize)
         {
             shared_A[threadIdx.x] = A[row * N + current_block * blockDim.x + threadIdx.x];
         }
@@ -55,9 +55,9 @@ __global__ void JacobiSolveWithSharedMemoryGPU(const double* A, const double* b,
         {
             shared_A[threadIdx.x] = 0;
         }
-        if (column < kBlockSize && current_block * blockDim.y + threadIdx.y < N)
+        if (column < kSingleBlockSize && current_block * blockDim.y + threadIdx.y < N)
         {
-            shared_x0[threadIdx.x] = x0[(current_block * kBlockSize + threadIdx.x)];
+            shared_x0[threadIdx.x] = x0[(current_block * kSingleBlockSize + threadIdx.x)];
         }
         else
         {
@@ -70,9 +70,9 @@ __global__ void JacobiSolveWithSharedMemoryGPU(const double* A, const double* b,
         if (row < N && column < 1)
         {
             // double sum = 0.0;
-            for (std::int32_t j = 0; j < kBlockSize; ++j)
+            for (std::int32_t j = 0; j < kSingleBlockSize; ++j)
             {
-                std::int32_t current_index = current_block * kBlockSize + j;
+                std::int32_t current_index = current_block * kSingleBlockSize + j;
                 if (row != current_index && current_index < N)  // Avoid self-multiplication
                 {
                     inner_sum += shared_A[j] * shared_x0[j];

@@ -9,6 +9,7 @@ cuda_library(
     #     "-v",
     #     "--maxrregcount=32",
     # ],
+    visibility = ["//examples/jacobi_method:__subpackages__"],
 )
 
 cuda_library(

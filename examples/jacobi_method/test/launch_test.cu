@@ -3,8 +3,9 @@
  *
  */
 
-#include "examples/jacobi_method/jacobi.h"
+#include "examples/jacobi_method/1d_grid/jacobi.h"
 #include "examples/jacobi_method/test/launch_test.cuh"
+#include "examples/jacobi_method/tiling/jacobi.h"
 #include "examples/jacobi_method/utils.h"
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -94,18 +95,20 @@ void LaunchJacobiSolveGPU(const double* A,
     }
 
     // Launch kernel
-    const auto num_blocks = (N + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks = (N + kSingleBlockSize - 1) / kSingleBlockSize;
 
     const auto grid_dim = dim3(num_blocks, 1, 1);
-    const auto block_dim = dim3(kBlockSize);
+    const auto block_dim = dim3(kSingleBlockSize);
 
-    printf("Launching kernel with configuration: (%d, 1, 1) x (%d, 1, 1) threads per block\n", num_blocks, kBlockSize);
+    printf("Launching kernel with configuration: (%d, 1, 1) x (%d, 1, 1) threads per block\n",
+           num_blocks,
+           kSingleBlockSize);
 
     std::vector<double> residuals(N, 0.0);
     double residual = 0.0;
     for (std::int32_t i = 0; i < max_iterations; ++i)
     {
-        JacobiSolveGPU<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, N);
+        JacobiSolveGPU1D<<<grid_dim, block_dim>>>(device_A, device_b, device_x0, device_x, N);
 
         CUDA_CHECK(cudaGetLastError());
         CUDA_CHECK(cudaDeviceSynchronize());
@@ -195,16 +198,16 @@ void LaunchJacobiSolveWithTilingGPU(const double* A,
     }
 
     // Launch kernel
-    const auto num_blocks = (N + kBlockSize - 1) / kBlockSize;
+    const auto num_blocks = (N + kTiledBlockSize - 1) / kTiledBlockSize;
 
     const auto grid_dim = dim3(num_blocks, num_blocks, 1);
-    const auto block_dim = dim3(kBlockSize, kBlockSize, 1);
+    const auto block_dim = dim3(kTiledBlockSize, kTiledBlockSize, 1);
 
     printf("Launching kernel with configuration: (%d, %d, 1) x (%d, %d, 1) threads per block\n",
            num_blocks,
            num_blocks,
-           kBlockSize,
-           kBlockSize);
+           kTiledBlockSize,
+           kTiledBlockSize);
 
     std::vector<double> residuals(N, 0.0);
     double residual = 0.0;

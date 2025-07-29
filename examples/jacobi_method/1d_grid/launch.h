@@ -19,11 +19,11 @@
         }                                                                                                    \
     } while (0)
 
-const std::int32_t kNumberOfElements = 10001;
-const double kTolerance = 1e-3;
-const std::int32_t kMaxIterations = 1;
+const std::int32_t kSingleNumberOfElements = 10001;
+const double kSingleTolerance = 1e-3;
+const std::int32_t kSingleMaxIterations = 1;
 
-double LaunchGPU();
-double LaunchJacobiWithSharedMemoryGPU();
+double LaunchGPU(std::int32_t N = kSingleNumberOfElements);
+double LaunchJacobiWithSharedMemoryGPU(std::int32_t N = kSingleNumberOfElements);
 
 #endif  // EXAMPLES_JACOBI_METHOD_1D_GRID_LAUNCH_H

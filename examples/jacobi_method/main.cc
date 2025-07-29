@@ -2,7 +2,9 @@
  * This file is part of the GPU Timeout Test project.
  */
 
-#include "examples/jacobi_method/launch.h"
+#include "examples/jacobi_method/1d_grid/launch.h"
+#include "examples/jacobi_method/cpu/launch.h"
+#include "examples/jacobi_method/tiling/launch.h"
 #include <iostream>
 
 int main()
@@ -27,7 +29,7 @@ int main()
     for (std::int32_t run = 0; run < max_runs; ++run)
     {
         std::cout << "GPU Run " << run + 1 << " of " << max_runs << "\n";
-        const auto gpu_time = LaunchJacobiSolveGPU(N);
+        const auto gpu_time = LaunchGPU(N);
 
         if (gpu_time < min_time_gpu)
         {
@@ -39,7 +41,7 @@ int main()
     for (std::int32_t run = 0; run < max_runs; ++run)
     {
         std::cout << "Shared Memory Run " << run + 1 << " of " << max_runs << "\n";
-        const auto gpu_shared_memory_time = LaunchJacobiSolveWithTilingGPU(N);
+        const auto gpu_shared_memory_time = LaunchJacobiWithSharedMemoryGPU(N);
 
         if (gpu_shared_memory_time < min_gpu_shared_memory_time)
         {
@@ -47,9 +49,22 @@ int main()
         }
     }
 
+    auto min_gpu_tiled_memory_time = 1000.0;
+    for (std::int32_t run = 0; run < max_runs; ++run)
+    {
+        std::cout << "Tiled Memory Run " << run + 1 << " of " << max_runs << "\n";
+        const auto gpu_tiled_memory_time = LaunchJacobiMethodWithTilingGPU(N);
+
+        if (gpu_tiled_memory_time < min_gpu_tiled_memory_time)
+        {
+            min_gpu_tiled_memory_time = gpu_tiled_memory_time;
+        }
+    }
+
     std::cout << "\nMinimum CPU time: " << min_time_cpu << " s" << "\n";
     std::cout << "Minimum GPU time: " << min_time_gpu << " s" << "\n";
     std::cout << "Minimum Shared Memory GPU time: " << min_gpu_shared_memory_time << " s" << "\n";
+    std::cout << "Minimum Tiled Memory GPU time: " << min_gpu_tiled_memory_time << " s" << "\n";
 
     return 0;
 }

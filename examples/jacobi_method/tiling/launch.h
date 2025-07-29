@@ -23,6 +23,6 @@ const std::int32_t kNumberOfElements = 10001;
 const double kTolerance = 1e-3;
 const std::int32_t kMaxIterations = 1;
 
-double LaunchGPU();
+double LaunchJacobiMethodWithTilingGPU(std::int32_t N = kNumberOfElements);
 
 #endif  // EXAMPLES_JACOBI_METHOD_LAUNCH_H

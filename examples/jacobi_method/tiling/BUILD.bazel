@@ -15,6 +15,7 @@ cuda_library(
     name = "jacobi_lib",
     srcs = ["launch.cu"],
     hdrs = ["launch.h"],
+    visibility = ["//examples/jacobi_method:__subpackages__"],
     deps = [
         ":jacobi_method_kernel",
         "//examples/jacobi_method:jacobi_utils",

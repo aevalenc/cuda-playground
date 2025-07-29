@@ -9,7 +9,7 @@
 
 #include <cstdint>
 
-__device__ constexpr std::int32_t kBlockSize = 32;
+__device__ constexpr std::int32_t kTiledBlockSize = 32;
 
 extern "C" {
 __global__ void JacobiSolveWithTilingGPU(const double* A, const double* b, double* x0, double* x, std::int32_t N);

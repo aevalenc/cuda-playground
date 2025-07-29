@@ -11,6 +11,8 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 
+#define K_BLOCK_SIZE_DEFINED
+
 class JacobiTestFixture : public ::testing::Test
 {
   public:
