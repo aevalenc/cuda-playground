@@ -1,0 +1,35 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cuda//cuda:defs.bzl", "cuda_library")
+
+cuda_library(
+    name = "jacobi_utils",
+    srcs = ["utils.cu"],
+    hdrs = ["utils.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "cpu_lib",
+    srcs = ["cpu/launch.cpp"],
+    hdrs = ["cpu/launch.h"],
+    visibility = ["//visibility:public"],
+    deps = [":jacobi_utils"],
+)
+
+cc_binary(
+    name = "cpu",
+    srcs = ["cpu/main.cpp"],
+    visibility = ["//visibility:public"],
+    deps = [":cpu_lib"],
+)
+
+cc_binary(
+    name = "main",
+    srcs = ["main.cc"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":cpu_lib",
+        "//examples/jacobi_method/1d_grid:jacobi_lib",
+        "//examples/jacobi_method/tiling:jacobi_lib",
+    ],
+)
